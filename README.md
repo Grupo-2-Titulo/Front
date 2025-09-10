@@ -107,4 +107,4 @@ npx commitlint --from=HEAD~1 --to=HEAD
 
 - El proyecto utiliza **React 19**, **TypeScript 5**, **Vite 7** y **Tailwind 3**.
 - Asegúrate de tener la versión correcta de Node.js para evitar problemas con dependencias.
-- Para mantener un historial de commits limpio, utiliza siempre `npx cz` en lugar de `git commit -m`.
+- Para mantener un historial de commits limpio, utiliza siempre `cz c` en lugar de `git commit -m`.
