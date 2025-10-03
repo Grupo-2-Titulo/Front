@@ -98,7 +98,7 @@ export default function FormularioSolicitud() {
 
   return (
     <div className="min-h-dvh bg-gray-50">
-      <BackHeader title={`Lámina de ${subcategoria?.name || 'Solicitud'}`} />
+      <BackHeader title={`${subcategoria?.name || 'Solicitud'}`} />
       <main className="mx-auto max-w-4xl px-4 py-10">
         {!sent ? (
           <>
