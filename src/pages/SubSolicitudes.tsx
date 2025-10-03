@@ -7,7 +7,6 @@ interface Subcategory {
   id: string
   name: string
   description?: string
-  category_id: string
 }
 
 export default function Subcategorias() {
@@ -22,14 +21,13 @@ export default function Subcategorias() {
         setLoading(true)
         setError(null)
 
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/subcategories/all`)
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/categories/${categoryId}/subcategories`
+        )
         if (!res.ok) throw new Error("Error al cargar subcategorías")
 
         const data: Subcategory[] = await res.json()
-
-        // Filtrar las subcategorías por el categoryId actual
-        const filtradas = data.filter((s) => s.category_id === categoryId)
-        setSubcategorias(filtradas)
+        setSubcategorias(data)
       } catch (err) {
         console.error(err)
         setError("No se pudieron cargar las subcategorías")
