@@ -107,10 +107,10 @@ export default function FormularioSolicitud() {
             </p>
 
             <Link
-              to="/solicitudes"
+              to="/"
               className="mt-8 inline-block rounded-xl bg-purple-700 text-white px-6 py-2.5 font-medium hover:bg-purple-800"
             >
-              Volver a solicitudes
+              Volver al inicio
             </Link>
           </div>
         )}
