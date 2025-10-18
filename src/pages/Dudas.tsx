@@ -1,6 +1,7 @@
+import { useState } from 'react'
+
 import BackHeader from '../components/BackHeader'
 import { Location } from '../icons/Icons'
-import { useState } from 'react'
 
 type Message = { from: 'ai' | 'user'; text: string }
 
@@ -18,7 +19,8 @@ export default function Dudas() {
     'Ubicación',
     'Contacto del área',
     'Servicios disponibles',
-    'Cómo llegar'
+    'Cómo llegar',
+    'Reclamos y sugerencias'
   ]
 
   function send(m?: string) {
@@ -47,14 +49,14 @@ export default function Dudas() {
           Nuestro asistente virtual está aquí para ayudarte.
         </p>
 
-        <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 max-w-3xl mx-auto">
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-gray-100 bg-white shadow-sm">
           {/* encabezado */}
           <div className="border-b border-gray-100 px-4 py-3">
             <h2 className="font-semibold text-gray-900">Asistente Virtual</h2>
           </div>
 
           {/* log de mensajes */}
-          <div className="px-4 py-4 space-y-4">
+          <div className="space-y-4 px-4 py-4">
             <div className="space-y-3">
               {log.map((l, i) => (
                 <div
@@ -64,13 +66,13 @@ export default function Dudas() {
                   } gap-3`}
                 >
                   {l.from === 'ai' && (
-                    <div className="shrink-0 mt-1 grid place-items-center w-7 h-7 rounded-full bg-gray-900 text-white">
+                    <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gray-900 text-white">
                       <span className="text-[10px]">AI</span>
                     </div>
                   )}
 
                   <div
-                    className={`rounded-xl px-4 py-2 max-w-xs ${
+                    className={`max-w-xs rounded-xl px-4 py-2 ${
                       l.from === 'user'
                         ? 'bg-purple-700 text-white'
                         : 'bg-gray-50 text-gray-800'
@@ -87,7 +89,7 @@ export default function Dudas() {
               {chips.map(c => (
                 <button
                   key={c}
-                  className="px-3 py-1.5 rounded-lg border text-sm text-gray-700 hover:bg-gray-50"
+                  className="rounded-lg border px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                   onClick={() => send(c)}
                 >
                   {c}
@@ -108,7 +110,7 @@ export default function Dudas() {
               />
               <button
                 onClick={() => send()}
-                className="px-4 py-2 rounded-xl bg-purple-700 text-white hover:bg-purple-800"
+                className="rounded-xl bg-purple-700 px-4 py-2 text-white hover:bg-purple-800"
                 aria-label="Enviar"
               >
                 ➤
@@ -118,7 +120,7 @@ export default function Dudas() {
         </div>
 
         {/* pie de página */}
-        <div className="mt-10 text-center text-gray-600 text-sm flex items-center justify-center gap-2">
+        <div className="mt-10 flex items-center justify-center gap-2 text-center text-sm text-gray-600">
           <Location /> Sede principal: Av. Salud 1234
         </div>
       </main>
