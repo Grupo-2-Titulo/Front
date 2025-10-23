@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react"
+
 import BackHeader from "../components/BackHeader"
 import CardLink from "../components/CardLink"
-import { useEffect, useState } from "react"
 
 interface Category {
   id: string
@@ -49,11 +50,11 @@ export default function Solicitudes() {
 
         {!loading && !error && (
           <>
-            <p className="text-center text-gray-700 max-w-2xl mx-auto">
+            <p className="mx-auto max-w-2xl text-center text-gray-700">
               Selecciona el tipo de solicitud que necesitas.
             </p>
 
-            <section className="mt-8 max-w-2xl mx-auto flex flex-col gap-4">
+            <section className="mx-auto mt-8 flex max-w-2xl flex-col gap-4">
               {categorias.map((c) => (
                 <CardLink
                   key={c.id}

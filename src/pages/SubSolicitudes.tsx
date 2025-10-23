@@ -1,7 +1,8 @@
+import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
+
 import BackHeader from "../components/BackHeader"
 import CardLink from "../components/CardLink"
-import { useEffect, useState } from "react"
 
 interface Subcategory {
   id: string
@@ -57,11 +58,11 @@ export default function Subcategorias() {
               </p>
             ) : (
               <>
-                <p className="text-center text-gray-700 max-w-2xl mx-auto">
+                <p className="mx-auto max-w-2xl text-center text-gray-700">
                   Selecciona la subcategoría para tu solicitud.
                 </p>
 
-                <section className="mt-8 max-w-2xl mx-auto flex flex-col gap-4">
+                <section className="mx-auto mt-8 flex max-w-2xl flex-col gap-4">
                   {subcategorias.map((s) => (
                     <CardLink
                       key={s.id}
