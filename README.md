@@ -46,6 +46,12 @@ Antes de comenzar, asegúrate de tener instalado:
    http://localhost:5173
    ```
 
+4. Configura las variables de entorno en un archivo `.env` en la raíz del proyecto (puedes usar `.env.example` como referencia si existe):
+   ```bash
+   VITE_API_URL=<url-del-backend-principal>
+   VITE_RAG_API_URL=<url-del-servicio-rag>
+   ```
+
 ---
 
 ## Tailwind CSS

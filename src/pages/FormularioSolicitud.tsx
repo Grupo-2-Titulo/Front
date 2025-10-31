@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { Location } from '../icons/Icons'
 
 import BackHeader from '../components/BackHeader'
 
@@ -28,7 +29,9 @@ export default function FormularioSolicitud() {
     async function fetchSubcategoria() {
       try {
         setLoading(true)
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/subcategories/by_id/${subId}`)
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/subcategories/by_id/${subId}`
+        )
         if (!res.ok) throw new Error('Error al cargar la subcategoría')
         const data = await res.json()
         setSubcategoria(data)
@@ -51,17 +54,20 @@ export default function FormularioSolicitud() {
     setError(null)
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/protected/tickets/${bedId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          category_id: subcategoria.category_id,
-          subcategory_id: subcategoria.id,
-          description: message,
-        }),
-      })
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/protected/tickets/${bedId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            category_id: subcategoria.category_id,
+            subcategory_id: subcategoria.id,
+            description: message
+          })
+        }
+      )
 
       if (!res.ok) throw new Error(`Error al crear ticket (${res.status})`)
 
@@ -88,110 +94,120 @@ export default function FormularioSolicitud() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-gray-50">
+      <div className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-white">
         <BackHeader title="Cargando..." />
-        <main className="mx-auto max-w-4xl px-4 py-10 text-center text-gray-500">
-          Cargando datos de la subcategoría...
+        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-12 pt-8">
+          <div className="mx-auto flex w-full max-w-3xl items-center justify-center rounded-3xl border border-purple-100 bg-white/90 px-8 py-16 text-center text-sm text-gray-500 shadow-xl backdrop-blur md:text-base">
+            Cargando datos de la subcategoría...
+          </div>
         </main>
       </div>
     )
   }
 
   return (
-    <div className="min-h-dvh bg-gray-50">
-      <BackHeader title={`${subcategoria?.name || 'Solicitud'}`} />
-      <main className="mx-auto max-w-4xl px-4 py-10">
-        {!sent ? (
-          <>
-            <p className="text-center font-semibold text-gray-700">
-              Detalle de la solicitud: {subcategoria?.name}
-            </p>
-
-            <form
-              onSubmit={submit}
-              className="mx-auto mt-8 max-w-2xl space-y-5 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm"
-            >
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Nombre y Apellido
-                </label>
-                <input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-600/40"
-                  placeholder="Escribe tu nombre"
-                />
+    <div className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-white">
+      <BackHeader title={subcategoria?.name || 'Solicitud'} />
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-12 pt-8">
+        <div className="mx-auto w-full max-w-3xl overflow-hidden rounded-3xl border border-purple-100 bg-white/90 shadow-xl backdrop-blur">
+          {!sent ? (
+            <>
+              <div className="border-b border-purple-100 bg-white/60 px-8 py-8 text-center">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Completa tu solicitud
+                </h2>
+                <p className="mt-3 text-sm text-gray-600 md:text-base">
+                  {subcategoria?.description ||
+                    'Proporciona el detalle para gestionar tu requerimiento.'}
+                </p>
               </div>
 
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Correo Electrónico
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-600/40"
-                  placeholder="correo@ejemplo.com"
-                />
-              </div>
+              <form onSubmit={submit} className="space-y-6 px-8 py-10">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                    Nombre y Apellido
+                    <input
+                      id="name"
+                      value={name}
+                      onChange={event => setName(event.target.value)}
+                      placeholder="Escribe tu nombre"
+                      className="rounded-xl border border-purple-200 bg-white/80 px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                    />
+                  </label>
 
-              <div>
-                <label 
-                  htmlFor="message"
-                  className="block text-sm font-medium text-gray-700">
+                  <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                    Correo Electrónico
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={event => setEmail(event.target.value)}
+                      required
+                      placeholder="correo@ejemplo.com"
+                      className="rounded-xl border border-purple-200 bg-white/80 px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                    />
+                  </label>
+                </div>
+
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
                   Detalle de la Solicitud
+                  <textarea
+                    id="message"
+                    value={message}
+                    onChange={event => setMessage(event.target.value)}
+                    rows={6}
+                    required
+                    placeholder="Describe tu solicitud..."
+                    className="rounded-2xl border border-purple-200 bg-white/80 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  />
                 </label>
-                <textarea
-                  id="message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  rows={5}
-                  required
-                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-purple-600/40"
-                  placeholder="Describe tu solicitud..."
-                />
-              </div>
 
-              {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && (
+                  <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600">
+                    {error}
+                  </p>
+                )}
 
-              <button
-                type="submit"
-                className="w-full rounded-xl bg-purple-700 py-2.5 font-medium text-white hover:bg-purple-800 disabled:opacity-60"
-                disabled={!message.trim() || !email.trim() || sending}
-              >
-                {sending ? 'Enviando...' : 'Enviar solicitud'}
-              </button>
+                <button
+                  type="submit"
+                  className="w-full rounded-2xl bg-purple-700 py-3 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:bg-purple-300"
+                  disabled={!message.trim() || !email.trim() || sending}
+                >
+                  {sending ? 'Enviando...' : 'Enviar solicitud'}
+                </button>
 
-              <p className="mt-6 text-center text-xs text-gray-500">
-                Habitación 4 A – 0 2 / Cama 04
+                <p className="text-center text-xs text-gray-500">
+                  Habitación 4 A – 0 2 / Cama 04
+                </p>
+              </form>
+            </>
+          ) : (
+            <div className="flex flex-col items-center px-8 py-16 text-center">
+              <h2 className="text-2xl font-semibold text-purple-700">
+                ¡Solicitud enviada con éxito!
+              </h2>
+              <p className="mt-4 max-w-md text-sm text-gray-600 md:text-base">
+                Gracias, hemos registrado tu solicitud de {subcategoria?.name}. Nuestro equipo se
+                pondrá en contacto contigo pronto.
               </p>
-            </form>
-          </>
-        ) : (
-          <div className="mx-auto mt-12 max-w-2xl rounded-2xl border border-gray-100 bg-white p-10 text-center shadow-sm">
-            <h2 className="text-xl font-semibold text-green-700">Solicitud enviada</h2>
-            <p className="mt-4 text-gray-600">
-              ¡Gracias! Hemos registrado tu solicitud de {subcategoria?.name}.
-            </p>
 
-            <Link
-              to="/"
-              className="mt-8 inline-block rounded-xl bg-purple-700 px-6 py-2.5 font-medium text-white hover:bg-purple-800"
-            >
-              Volver al inicio
-            </Link>
-          </div>
-        )}
+              <Link
+                to="/"
+                className="mt-8 inline-flex items-center justify-center rounded-2xl bg-purple-700 px-6 py-3 text-sm font-medium text-white transition hover:bg-purple-800"
+              >
+                Volver al inicio
+              </Link>
+            </div>
+          )}
+        </div>
+
+        <p className="mx-auto mt-8 max-w-3xl text-center text-sm text-gray-500">
+          Si necesitas realizar otra solicitud, puedes regresar al listado o contactar al asistente
+          virtual.
+        </p>
+        <div className="mt-10 flex items-center justify-center gap-2 text-center text-sm text-gray-600">
+          <Location />  Av. Vicuña Mackenna 4686, Macul, Región Metropolitana
+        </div>
       </main>
     </div>
   )
