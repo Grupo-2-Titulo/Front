@@ -21,8 +21,8 @@ export default function FormularioSolicitud() {
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
 
-  const tokenID =
-    'AdU_ozpZYP6niLrF-140HRWGebEdtHM30C4Ef4ouVxMjY_TesGt6xDJAPvY_1VNJmJYmXR4Q5cnGfml7BAoM9Qo-gf8ghQ7WK0qx57x9Q_9AomZ9ABe6_bdVgILhPYQ'
+  // El bed_id que se usa en la ruta
+  const bedId = 'VluxjtchbAcDOLF2-z0v4w'
 
   useEffect(() => {
     let active = true
@@ -62,13 +62,10 @@ export default function FormularioSolicitud() {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/protected/tickets`,
+        `${import.meta.env.VITE_API_URL}/protected/tickets/${bedId}`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${tokenID}`
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             subcategory_id: subcategoria.id,
             description: message,
@@ -210,8 +207,7 @@ export default function FormularioSolicitud() {
                 ¡Solicitud enviada con éxito!
               </h2>
               <p className="mt-4 max-w-md text-sm text-gray-600 md:text-base">
-                Gracias, hemos registrado tu solicitud de {subcategoria?.name}. Nuestro equipo se
-                pondrá en contacto contigo pronto.
+                Gracias, hemos registrado tu solicitud de {subcategoria?.name}. Nuestro equipo se pondrá en contacto contigo pronto.
               </p>
 
               <Link
@@ -225,8 +221,7 @@ export default function FormularioSolicitud() {
         </div>
 
         <p className="mx-auto mt-8 max-w-3xl text-center text-sm text-gray-500">
-          Si necesitas realizar otra solicitud, puedes regresar al listado o contactar al asistente
-          virtual.
+          Si necesitas realizar otra solicitud, puedes regresar al listado o contactar al asistente virtual.
         </p>
         <div className="mt-10 flex items-center justify-center gap-2 text-center text-sm text-gray-600">
           <Location /> Av. Vicuña Mackenna 4686, Macul, Región Metropolitana
