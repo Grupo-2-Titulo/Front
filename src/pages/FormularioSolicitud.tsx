@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Location } from '../icons/Icons'
+
 import BackHeader from '../components/BackHeader'
 
 interface Subcategory {
@@ -22,13 +23,9 @@ export default function FormularioSolicitud() {
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
 
-  // ⚠️ Cambia esto si el bedId debe venir dinámico
   const bedId = '5433a5ec-32cf-405d-b27d-989961bff3ed'
 
-  // ✅ Carga segura de la subcategoría
   useEffect(() => {
-    let active = true
-
     async function fetchSubcategoria() {
       try {
         setLoading(true)
@@ -37,33 +34,24 @@ export default function FormularioSolicitud() {
         )
         if (!res.ok) throw new Error('Error al cargar la subcategoría')
         const data = await res.json()
-        if (active) setSubcategoria(data)
+        setSubcategoria(data)
       } catch (err) {
         console.error(err)
-        if (active) setError('No se pudo cargar la subcategoría')
+        setError('No se pudo cargar la subcategoría')
       } finally {
-        if (active) setLoading(false)
+        setLoading(false)
       }
     }
 
     if (subId) fetchSubcategoria()
-    return () => {
-      active = false
-    }
   }, [subId])
 
-  // ✅ Envío con validación y manejo de errores detallado
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
-
-    if (!subcategoria) return setError('Subcategoría no encontrada.')
-    if (!name.trim()) return setError('Debes ingresar tu nombre.')
-    if (!/\S+@\S+\.\S+/.test(email))
-      return setError('Por favor ingresa un correo válido.')
-    if (!message.trim()) return setError('Debes escribir un mensaje.')
+    if (!message.trim() || !email.trim() || !subcategoria) return
 
     setSending(true)
+    setError(null)
 
     try {
       const res = await fetch(
@@ -76,12 +64,12 @@ export default function FormularioSolicitud() {
           body: JSON.stringify({
             category_id: subcategoria.category_id,
             subcategory_id: subcategoria.id,
-            description: message,
-            name,
-            email
+            description: message
           })
         }
       )
+
+      if (!res.ok) throw new Error(`Error al crear ticket (${res.status})`)
 
       const raw = await res.text()
       let data
@@ -91,21 +79,14 @@ export default function FormularioSolicitud() {
         data = raw
       }
 
-      if (!res.ok) {
-        console.error('Detalles del error:', data)
-        throw new Error(data?.detail || `Error al crear ticket (${res.status})`)
-      }
-
       console.log('✅ Ticket creado:', data)
       setSent(true)
       setName('')
       setEmail('')
       setMessage('')
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
-      setError(
-        err.message || 'No se pudo enviar la solicitud. Intenta más tarde.'
-      )
+      setError('No se pudo enviar la solicitud. Intenta más tarde.')
     } finally {
       setSending(false)
     }
@@ -151,7 +132,6 @@ export default function FormularioSolicitud() {
                       onChange={event => setName(event.target.value)}
                       placeholder="Escribe tu nombre"
                       className="rounded-xl border border-purple-200 bg-white/80 px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                      required
                     />
                   </label>
 
@@ -226,7 +206,7 @@ export default function FormularioSolicitud() {
           virtual.
         </p>
         <div className="mt-10 flex items-center justify-center gap-2 text-center text-sm text-gray-600">
-          <Location /> Av. Vicuña Mackenna 4686, Macul, Región Metropolitana
+          <Location />  Av. Vicuña Mackenna 4686, Macul, Región Metropolitana
         </div>
       </main>
     </div>
