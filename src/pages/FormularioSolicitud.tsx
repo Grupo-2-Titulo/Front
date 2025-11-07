@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Location } from '../icons/Icons'
-
 import BackHeader from '../components/BackHeader'
 
 interface Subcategory {
@@ -23,9 +22,13 @@ export default function FormularioSolicitud() {
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
 
+  // ⚠️ Cambia esto si el bedId debe venir dinámico
   const bedId = '5433a5ec-32cf-405d-b27d-989961bff3ed'
 
+  // ✅ Carga segura de subcategoría
   useEffect(() => {
+    let active = true
+
     async function fetchSubcategoria() {
       try {
         setLoading(true)
@@ -34,24 +37,33 @@ export default function FormularioSolicitud() {
         )
         if (!res.ok) throw new Error('Error al cargar la subcategoría')
         const data = await res.json()
-        setSubcategoria(data)
+        if (active) setSubcategoria(data)
       } catch (err) {
         console.error(err)
-        setError('No se pudo cargar la subcategoría')
+        if (active) setError('No se pudo cargar la subcategoría')
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
 
     if (subId) fetchSubcategoria()
+    return () => {
+      active = false
+    }
   }, [subId])
 
+  // ✅ Envío del formulario con manejo detallado de errores
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!message.trim() || !email.trim() || !subcategoria) return
+    setError(null)
+
+    if (!subcategoria) return setError('Subcategoría no encontrada.')
+    if (!name.trim()) return setError('Debes ingresar tu nombre.')
+    if (!/\S+@\S+\.\S+/.test(email))
+      return setError('Por favor ingresa un correo válido.')
+    if (!message.trim()) return setError('Debes escribir un mensaje.')
 
     setSending(true)
-    setError(null)
 
     try {
       const res = await fetch(
@@ -59,17 +71,20 @@ export default function FormularioSolicitud() {
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            // Si tu endpoint es autenticado, descomenta esto:
+            // 'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
             category_id: subcategoria.category_id,
             subcategory_id: subcategoria.id,
-            description: message
-          })
+            description: message,
+            name,
+            email,
+            bed_id: bedId, // 👈 algunos backends lo esperan también en el body
+          }),
         }
       )
-
-      if (!res.ok) throw new Error(`Error al crear ticket (${res.status})`)
 
       const raw = await res.text()
       let data
@@ -79,19 +94,38 @@ export default function FormularioSolicitud() {
         data = raw
       }
 
+      // 🧩 Manejo detallado del error
+      if (!res.ok) {
+        console.group('❌ Error al crear ticket')
+        console.log('Status:', res.status)
+        console.log('Raw response:', raw)
+        console.log('Parsed data:', data)
+        console.groupEnd()
+
+        const backendMsg =
+          (typeof data === 'object' && data?.detail) ||
+          (typeof data === 'object' && JSON.stringify(data)) ||
+          raw
+
+        throw new Error(backendMsg || `Error al crear ticket (${res.status})`)
+      }
+
       console.log('✅ Ticket creado:', data)
       setSent(true)
       setName('')
       setEmail('')
       setMessage('')
-    } catch (err) {
+    } catch (err: any) {
       console.error(err)
-      setError('No se pudo enviar la solicitud. Intenta más tarde.')
+      setError(
+        err.message || 'No se pudo enviar la solicitud. Intenta más tarde.'
+      )
     } finally {
       setSending(false)
     }
   }
 
+  // 🟣 Vista de carga
   if (loading) {
     return (
       <div className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-white">
@@ -105,6 +139,7 @@ export default function FormularioSolicitud() {
     )
   }
 
+  // 🟢 Vista principal
   return (
     <div className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-white">
       <BackHeader title={subcategoria?.name || 'Solicitud'} />
@@ -129,8 +164,9 @@ export default function FormularioSolicitud() {
                     <input
                       id="name"
                       value={name}
-                      onChange={event => setName(event.target.value)}
+                      onChange={(e) => setName(e.target.value)}
                       placeholder="Escribe tu nombre"
+                      required
                       className="rounded-xl border border-purple-200 bg-white/80 px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
                     />
                   </label>
@@ -141,7 +177,7 @@ export default function FormularioSolicitud() {
                       id="email"
                       type="email"
                       value={email}
-                      onChange={event => setEmail(event.target.value)}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
                       placeholder="correo@ejemplo.com"
                       className="rounded-xl border border-purple-200 bg-white/80 px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
@@ -154,7 +190,7 @@ export default function FormularioSolicitud() {
                   <textarea
                     id="message"
                     value={message}
-                    onChange={event => setMessage(event.target.value)}
+                    onChange={(e) => setMessage(e.target.value)}
                     rows={6}
                     required
                     placeholder="Describe tu solicitud..."
@@ -206,7 +242,7 @@ export default function FormularioSolicitud() {
           virtual.
         </p>
         <div className="mt-10 flex items-center justify-center gap-2 text-center text-sm text-gray-600">
-          <Location />  Av. Vicuña Mackenna 4686, Macul, Región Metropolitana
+          <Location /> Av. Vicuña Mackenna 4686, Macul, Región Metropolitana
         </div>
       </main>
     </div>
