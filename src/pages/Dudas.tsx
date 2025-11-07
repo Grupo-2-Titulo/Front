@@ -2,7 +2,7 @@ import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import BackHeader from '../components/BackHeader'
-import { Location } from '../icons/Icons'
+import { Location, ThumbDown, ThumbUp } from '../icons/Icons'
 
 type Message = {
   id: string
@@ -158,11 +158,7 @@ function formatAssistantContent(content: string): ReactNode {
           </a>
         )
       } else {
-        parts.push(
-          <Fragment key={`text-${fragmentCounter++}`}>
-            {fullMatch}
-          </Fragment>
-        )
+        parts.push(<Fragment key={`text-${fragmentCounter++}`}>{fullMatch}</Fragment>)
       }
     }
 
@@ -196,12 +192,12 @@ export default function Dudas() {
     }
   ])
   const [sections, setSections] = useState<SectionOption[]>([])
+  const [feedback, setFeedback] = useState<'like' | 'dislike' | null>(null)
   const conversationRef = useRef<HTMLDivElement | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     if (!ragApiUrl) return
-
     let active = true
     ;(async () => {
       try {
@@ -215,7 +211,6 @@ export default function Dudas() {
         console.error('Error al cargar secciones de RAG', error)
       }
     })()
-
     return () => {
       active = false
     }
@@ -326,7 +321,7 @@ export default function Dudas() {
       <BackHeader title="Asistente Virtual" />
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pb-12 pt-8">
         <div className="mx-auto w-full max-w-3xl overflow-hidden rounded-3xl border border-purple-100 bg-white/90 shadow-xl backdrop-blur">
-          <div className="flex items-center gap-3 border-b border-purple-100 bg-white/60 px-6 py-4">
+          <div className="flex flex-wrap items-center gap-4 border-b border-purple-100 bg-white/60 px-6 py-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100">
               <img
                 src={LOGO_URL}
@@ -334,11 +329,56 @@ export default function Dudas() {
                 className="h-10 w-10 object-contain"
               />
             </div>
-            <div>
-              <h2 className="font-semibold text-gray-900">Asistente UC Christus</h2>
-              <p className="text-sm text-gray-500">
-                Respuestas inmediatas conectadas a nuestra base de conocimiento.
-              </p>
+
+            <div className="grid flex-1 gap-4 md:grid-cols-2 md:items-center md:justify-between">
+              <div>
+                <h2 className="font-semibold text-gray-900">
+                  Asistente UC Christus
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Respuestas inmediatas conectadas a nuestra base de conocimiento.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-start md:justify-end gap-3 text-sm text-gray-700">
+                <span className="font-medium text-gray-900">
+                  ¿Se resolvió tu duda?
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    aria-label="Sí, se resolvió mi duda"
+                    aria-pressed={feedback === 'like'}
+                    onClick={() =>
+                      setFeedback(feedback === 'like' ? null : 'like')
+                    }
+                    className={[
+                      'rounded-full border px-3 py-1 transition',
+                      feedback === 'like'
+                        ? 'border-purple-200 bg-purple-700 text-white'
+                        : 'border-purple-100 bg-white text-purple-700 hover:border-purple-200 hover:bg-purple-50'
+                    ].join(' ')}
+                  >
+                    <ThumbUp size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="No, aún tengo dudas"
+                    aria-pressed={feedback === 'dislike'}
+                    onClick={() =>
+                      setFeedback(feedback === 'dislike' ? null : 'dislike')
+                    }
+                    className={[
+                      'rounded-full border px-3 py-1 transition',
+                      feedback === 'dislike'
+                        ? 'border-red-200 bg-red-100 text-red-700'
+                        : 'border-purple-100 bg-white text-purple-700 hover:border-purple-200 hover:bg-purple-50'
+                    ].join(' ')}
+                  >
+                    <ThumbDown size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -359,8 +399,8 @@ export default function Dudas() {
                     message.role === 'user'
                       ? 'bg-purple-700 text-white'
                       : message.error
-                        ? 'border border-red-200 bg-red-50 text-red-700'
-                        : 'bg-gray-100 text-gray-800'
+                      ? 'border border-red-200 bg-red-50 text-red-700'
+                      : 'bg-gray-100 text-gray-800'
                   ].join(' ')}
                 >
                   {message.pending ? (
@@ -448,7 +488,7 @@ export default function Dudas() {
         </div>
 
         <div className="mt-10 flex items-center justify-center gap-2 text-center text-sm text-gray-600">
-          <Location />  Av. Vicuña Mackenna 4686, Macul, Región Metropolitana
+          <Location /> Av. Vicuña Mackenna 4686, Macul, Región Metropolitana
         </div>
       </main>
     </div>

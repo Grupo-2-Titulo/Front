@@ -108,3 +108,29 @@ export const Tools = ({ size = 22, ...p }: IconProps) => (
       stroke="currentColor" fill="none" strokeWidth="1.6"/>
   </svg>
 )
+
+export const ThumbUp = ({ size = 20, ...p }: IconProps) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} {...p}>
+    <path
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M6 10v10H3V10h3Zm3 10h8.3a2 2 0 0 0 2-1.6l1.2-6.8A2 2 0 0 0 18.6 9H15V5a2 2 0 0 0-2-2l-3 7Z"
+    />
+  </svg>
+)
+
+export const ThumbDown = ({ size = 20, ...p }: IconProps) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} {...p}>
+    <path
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M18 14V4h3v10h-3Zm-3-10H6.7a2 2 0 0 0-2 1.6L3.5 12.4A2 2 0 0 0 5.4 15H9v4a2 2 0 0 0 2 2l3-7Z"
+    />
+  </svg>
+)
