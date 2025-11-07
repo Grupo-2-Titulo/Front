@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, type ReactNode, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import BackHeader from '../components/BackHeader'
@@ -25,6 +25,9 @@ const DEFAULT_PROMPTS = [
   '¿Cómo llego a la sede principal?',
   '¿Dónde hago un reclamo o sugerencia?'
 ]
+
+const CONTACT_REGEX =
+  /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(\+?\d[\d\s().-]{6,}\d)/gi
 
 function createId() {
   return Math.random().toString(36).slice(2)
@@ -104,6 +107,79 @@ function normalizeSections(payload: unknown): SectionOption[] {
 
   dig(payload)
   return results
+}
+
+function formatAssistantContent(content: string): ReactNode {
+  const matcher = new RegExp(CONTACT_REGEX)
+  const parts: ReactNode[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+  let fragmentCounter = 0
+
+  while ((match = matcher.exec(content)) !== null) {
+    const fullMatch = match[0]
+    const start = match.index
+
+    if (start > lastIndex) {
+      parts.push(
+        <Fragment key={`text-${fragmentCounter++}`}>
+          {content.slice(lastIndex, start)}
+        </Fragment>
+      )
+    }
+
+    if (match[1]) {
+      const email = match[1]
+      parts.push(
+        <a
+          key={`email-${start}`}
+          href={`mailto:${email}`}
+          className="font-medium text-purple-700 underline underline-offset-2"
+        >
+          {fullMatch}
+        </a>
+      )
+    } else if (match[2]) {
+      const digits = fullMatch.replace(/\D/g, '')
+      if (digits.length >= 7) {
+        const telValue = fullMatch.replace(/[^\d+]/g, '')
+        const normalized =
+          telValue.startsWith('+')
+            ? `+${telValue.slice(1).replace(/\+/g, '')}`
+            : telValue.replace(/\+/g, '')
+
+        parts.push(
+          <a
+            key={`phone-${start}`}
+            href={`tel:${normalized}`}
+            className="font-medium text-purple-700 underline underline-offset-2"
+          >
+            {fullMatch}
+          </a>
+        )
+      } else {
+        parts.push(
+          <Fragment key={`text-${fragmentCounter++}`}>
+            {fullMatch}
+          </Fragment>
+        )
+      }
+    }
+
+    lastIndex = start + fullMatch.length
+  }
+
+  if (!parts.length) return content
+
+  if (lastIndex < content.length) {
+    parts.push(
+      <Fragment key={`text-${fragmentCounter++}`}>
+        {content.slice(lastIndex)}
+      </Fragment>
+    )
+  }
+
+  return parts
 }
 
 export default function Dudas() {
@@ -293,6 +369,8 @@ export default function Dudas() {
                       <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400"></span>
                       <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400"></span>
                     </span>
+                  ) : message.role === 'assistant' ? (
+                    formatAssistantContent(message.content)
                   ) : (
                     message.content
                   )}
