@@ -22,7 +22,7 @@ export default function FormularioSolicitud() {
   const [sending, setSending] = useState(false)
 
   // El bed_id que se usa en la ruta
-  const bedId = 'VluxjtchbAcDOLF2-z0v4w'
+  const bedId = 'AQLNAjIcx0y8wxCXdPR1Qi4lCF9jjAgX1bVyzL7JkuwN1tF-gf8ghQ7WK0qx57x9Q_9AomZ9ABe6_bdVgILhPYQ'
 
   useEffect(() => {
     let active = true
