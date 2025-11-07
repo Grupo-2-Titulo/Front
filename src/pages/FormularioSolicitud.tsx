@@ -21,7 +21,8 @@ export default function FormularioSolicitud() {
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
 
-  const bedId = 'b3de8c4e-bb37-479e-91c5-a33b2871f9e1'
+  const tokenID =
+    'AQLNAjIcx0y8wxCXdPR1Qi4lCF9jjAgX1bVyzL7JkuwN1tF-gf8ghQ7WK0qx57x9Q_9AomZ9ABe6_bdVgILhPYQ'
 
   useEffect(() => {
     let active = true
@@ -61,16 +62,18 @@ export default function FormularioSolicitud() {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/protected/tickets/${bedId}`,
+        `${import.meta.env.VITE_API_URL}/protected/tickets`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tokenID}`
+          },
           body: JSON.stringify({
-            category_id: subcategoria.category_id,
             subcategory_id: subcategoria.id,
             description: message,
-            name,
-            email
+            requester_email: email,
+            requester_name: name
           })
         }
       )
