@@ -22,10 +22,10 @@ export default function FormularioSolicitud() {
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
 
-  // ⚠️ Cambia esto si el bedId debe venir dinámico
-  const bedId = '5433a5ec-32cf-405d-b27d-989961bff3ed'
+  // ✅ Bed ID requerido por la ruta
+  const bedId = 'b3de8c4e-bb37-479e-91c5-a33b2871f9e1'
 
-  // ✅ Carga segura de subcategoría
+  // ✅ Cargar subcategoría
   useEffect(() => {
     let active = true
 
@@ -52,7 +52,7 @@ export default function FormularioSolicitud() {
     }
   }, [subId])
 
-  // ✅ Envío del formulario con manejo detallado de errores
+  // ✅ Envío del formulario
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -72,17 +72,14 @@ export default function FormularioSolicitud() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            // Si tu endpoint es autenticado, descomenta esto:
-            // 'Authorization': `Bearer ${token}`,
+            'X-User-Name': name,
+            'X-User-Email': email
           },
           body: JSON.stringify({
             category_id: subcategoria.category_id,
             subcategory_id: subcategoria.id,
-            description: message,
-            name,
-            email,
-            bed_id: bedId, // 👈 algunos backends lo esperan también en el body
-          }),
+            description: message
+          })
         }
       )
 
@@ -94,7 +91,6 @@ export default function FormularioSolicitud() {
         data = raw
       }
 
-      // 🧩 Manejo detallado del error
       if (!res.ok) {
         console.group('❌ Error al crear ticket')
         console.log('Status:', res.status)
@@ -103,8 +99,8 @@ export default function FormularioSolicitud() {
         console.groupEnd()
 
         const backendMsg =
+          (typeof data === 'object' && data?.message) ||
           (typeof data === 'object' && data?.detail) ||
-          (typeof data === 'object' && JSON.stringify(data)) ||
           raw
 
         throw new Error(backendMsg || `Error al crear ticket (${res.status})`)
