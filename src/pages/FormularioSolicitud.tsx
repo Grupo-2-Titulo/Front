@@ -15,20 +15,16 @@ export default function FormularioSolicitud() {
   const [subcategoria, setSubcategoria] = useState<Subcategory | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
 
-  // ✅ Bed ID requerido por la ruta
   const bedId = 'b3de8c4e-bb37-479e-91c5-a33b2871f9e1'
 
-  // ✅ Cargar subcategoría
   useEffect(() => {
     let active = true
-
     async function fetchSubcategoria() {
       try {
         setLoading(true)
@@ -45,14 +41,12 @@ export default function FormularioSolicitud() {
         if (active) setLoading(false)
       }
     }
-
     if (subId) fetchSubcategoria()
     return () => {
       active = false
     }
   }, [subId])
 
-  // ✅ Envío del formulario
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -70,15 +64,13 @@ export default function FormularioSolicitud() {
         `${import.meta.env.VITE_API_URL}/protected/tickets/${bedId}`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-Name': name,
-            'X-User-Email': email
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             category_id: subcategoria.category_id,
             subcategory_id: subcategoria.id,
-            description: message
+            description: message,
+            name,
+            email
           })
         }
       )
@@ -97,12 +89,10 @@ export default function FormularioSolicitud() {
         console.log('Raw response:', raw)
         console.log('Parsed data:', data)
         console.groupEnd()
-
         const backendMsg =
           (typeof data === 'object' && data?.message) ||
           (typeof data === 'object' && data?.detail) ||
           raw
-
         throw new Error(backendMsg || `Error al crear ticket (${res.status})`)
       }
 
@@ -121,7 +111,6 @@ export default function FormularioSolicitud() {
     }
   }
 
-  // 🟣 Vista de carga
   if (loading) {
     return (
       <div className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-white">
@@ -135,7 +124,6 @@ export default function FormularioSolicitud() {
     )
   }
 
-  // 🟢 Vista principal
   return (
     <div className="min-h-dvh bg-gradient-to-b from-purple-50 via-white to-white">
       <BackHeader title={subcategoria?.name || 'Solicitud'} />
