@@ -15,7 +15,7 @@ type Message = {
 type SectionOption = { id: string; label: string }
 
 const LOGO_URL =
-  'https://invadelab.cl/wp-content/uploads/2019/06/logo-ucchristus.png'
+  'https://d328k6xhl3lmif.cloudfront.net/images/default-source/p-100-images/logos/uclogo.png?sfvrsn=892c35e5_1'
 
 const DEFAULT_PROMPTS = [
   '¿Cuáles son los horarios de atención?',
