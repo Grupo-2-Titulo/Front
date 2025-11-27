@@ -1,3 +1,8 @@
+const DEFAULT_PROFILE = {
+  name: 'Juanita Gómez',
+  email: 'juanita@ucchristus.cl',
+}
+
 export default function AdminProfile() {
   return (
     <div className="space-y-8">
@@ -14,7 +19,7 @@ export default function AdminProfile() {
           <input
             id="profile-name"
             type="text"
-            defaultValue="Juanita Gómez"
+            defaultValue={DEFAULT_PROFILE.name}
             className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
           />
         </div>
@@ -26,7 +31,7 @@ export default function AdminProfile() {
           <input
             id="profile-email"
             type="email"
-            defaultValue="juanita@ucchristus.cl"
+            defaultValue={DEFAULT_PROFILE.email}
             className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
           />
         </div>
@@ -41,18 +46,6 @@ export default function AdminProfile() {
             placeholder="••••••••"
             className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
           />
-        </div>
-
-        <div>
-          <label htmlFor="profile-image" className="block text-sm font-medium text-gray-700">
-            Imagen de perfil
-          </label>
-          <input
-            id="profile-image"
-            type="file"
-            className="mt-1 w-full rounded-2xl border border-dashed border-purple-200 bg-purple-50/40 px-4 py-3 text-sm text-gray-600 file:mr-4 file:rounded-2xl file:border-0 file:bg-purple-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-purple-300"
-          />
-          <p className="mt-2 text-xs text-gray-500">Formatos aceptados: JPG, PNG (máx. 5MB)</p>
         </div>
 
         <div className="flex flex-wrap gap-3">
