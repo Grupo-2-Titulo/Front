@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-type ManagementView = 'none' | 'add' | 'edit' | 'delete' | 'password'
+type ManagementView = 'none' | 'add' | 'edit' | 'delete'
 
 const USERS = [
   { name: 'Juanita Gómez', username: 'juanita', email: 'juanita@ucchristus.cl', role: 'Administrador', password: '********' },
@@ -134,7 +134,6 @@ export default function AdminUsers() {
               <tr>
                 <th className="px-4 py-3 text-left">Nombre</th>
                 <th className="px-4 py-3 text-left">Usuario</th>
-                <th className="px-4 py-3 text-left">Contraseña</th>
                 <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Rol</th>
                 <th className="px-4 py-3 text-left">Acciones</th>
@@ -145,20 +144,6 @@ export default function AdminUsers() {
                 <tr key={user.username} className="hover:bg-purple-50/40">
                   <td className="px-4 py-3 font-semibold text-gray-900">{user.name}</td>
                   <td className="px-4 py-3">{user.username}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-500">
-                        ••••••••
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => openView('password', user)}
-                        className="text-xs font-semibold text-purple-600 hover:text-purple-800"
-                      >
-                        Ver
-                      </button>
-                    </div>
-                  </td>
                   <td className="px-4 py-3">{user.email}</td>
                   <td className="px-4 py-3">{user.role}</td>
                   <td className="px-4 py-3">
@@ -195,14 +180,11 @@ export default function AdminUsers() {
                 {activeView === 'add' && 'Añadir nuevo usuario'}
                 {activeView === 'edit' && `Editar ${selectedUser?.username}`}
                 {activeView === 'delete' && 'Eliminar usuario'}
-                {activeView === 'password' && 'Mostrar contraseña'}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
                 {activeView === 'delete'
                   ? 'Esta acción es definitiva y no se puede deshacer.'
-                  : activeView === 'password'
-                    ? 'Confirma que deseas visualizar la contraseña de este usuario.'
-                    : 'Completa los datos para gestionar el usuario.'}
+                  : 'Completa los datos para gestionar el usuario.'}
               </p>
             </header>
 
@@ -228,28 +210,6 @@ export default function AdminUsers() {
                     className="rounded-2xl border border-red-200 bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-200/80 transition hover:bg-red-600"
                   >
                     Eliminar definitivamente
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {activeView === 'password' && (
-              <div className="space-y-6">
-                <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 text-sm text-amber-700">
-                  Estás solicitando ver la contraseña de{' '}
-                  <span className="font-semibold text-amber-900">{selectedUser?.username}</span>. Esta
-                  acción revela datos sensibles; asegúrate de que nadie más esté mirando la pantalla.
-                </div>
-                <div className="rounded-2xl border border-purple-100 bg-purple-50/60 px-6 py-4 text-center text-2xl font-semibold text-gray-900">
-                  ********
-                </div>
-                <div className="flex flex-wrap justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={closeView}
-                    className="rounded-2xl bg-purple-600 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-700"
-                  >
-                    Entendido
                   </button>
                 </div>
               </div>
