@@ -7,7 +7,22 @@ const navItems = [
   { label: 'Usuarios', to: '/admin/usuarios' },
 ]
 
+const ACTIVE_ADMIN = {
+  name: 'Juanita Gómez',
+  role: 'Administrador',
+}
+
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .map(part => part.trim()[0])
+    .filter(Boolean)
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
 export default function Admin() {
+  const profileInitials = getInitials(ACTIVE_ADMIN.name)
   return (
     <div className="min-h-dvh bg-gradient-to-br from-purple-50 via-white to-white">
       <div className="mx-auto flex min-h-dvh max-w-6xl gap-6 px-4 py-10">
@@ -22,10 +37,10 @@ export default function Admin() {
             }
           >
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-purple-600 text-3xl font-semibold text-white">
-              J
+              {profileInitials}
             </div>
-            <p className="mt-4 text-lg font-semibold text-gray-900">Juanita Gómez</p>
-            <p className="text-sm text-purple-500">Administrador</p>
+            <p className="mt-4 text-lg font-semibold text-gray-900">{ACTIVE_ADMIN.name}</p>
+            <p className="text-sm text-purple-500">{ACTIVE_ADMIN.role}</p>
           </NavLink>
 
           <div className="mt-6 border-t border-purple-100 pt-6">

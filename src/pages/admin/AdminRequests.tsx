@@ -42,11 +42,15 @@ const TIME_RANGES = [
 ]
 
 const STATUS_OPTIONS = ['Pendiente', 'Asignada', 'En progreso', 'Resuelta', 'Escalada']
+const ROOM_TIME_FILTERS = ['Todos', ...TIME_RANGES.map(range => range.range)]
+const STATUS_FILTERS = ['Todos', ...STATUS_OPTIONS]
 
 export default function AdminRequests() {
   const [requestList, setRequestList] = useState<Request[]>(INITIAL_REQUESTS)
   const [activeView, setActiveView] = useState<ManagementView>('none')
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null)
+  const [selectedTimeFilter, setSelectedTimeFilter] = useState<string>('Todos')
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('Todos')
 
   const maxArea = Math.max(...AREA_DISTRIBUTION.map(item => item.count))
 
@@ -140,7 +144,6 @@ export default function AdminRequests() {
                 <tr>
                   <th className="px-4 py-3 text-left">Rango horario</th>
                   <th className="px-4 py-3 text-left">Solicitudes</th>
-                  <th className="px-4 py-3 text-left">Prioridad</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-purple-50 bg-white text-gray-700">
@@ -148,11 +151,6 @@ export default function AdminRequests() {
                   <tr key={range.range} className="hover:bg-purple-50/40">
                     <td className="px-4 py-3 font-semibold text-gray-900">{range.range}</td>
                     <td className="px-4 py-3">{range.count}</td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-600">
-                        {range.count > 50 ? 'Alta' : range.count > 30 ? 'Media' : 'Baja'}
-                      </span>
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -177,6 +175,38 @@ export default function AdminRequests() {
             <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
               {requestList.length} registros
             </span>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-purple-400">Rango horario</p>
+            <select
+              value={selectedTimeFilter}
+              onChange={(event) => setSelectedTimeFilter(event.target.value)}
+              className="mt-3 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-sm font-semibold text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+            >
+              {ROOM_TIME_FILTERS.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-[0.4em] text-purple-400">Estado</p>
+            <select
+              value={selectedStatusFilter}
+              onChange={(event) => setSelectedStatusFilter(event.target.value)}
+              className="mt-3 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-sm font-semibold text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+            >
+              {STATUS_FILTERS.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
