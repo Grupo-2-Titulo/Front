@@ -7,6 +7,7 @@ type Request = {
   bed: string;
   room: string;
   area: string;
+  floor: string;
   detail: string;
   status: string;
 };
@@ -25,6 +26,7 @@ const INITIAL_REQUESTS: Request[] = [
     bed: "1",
     room: "301-B",
     area: "Pediatría",
+    floor: "3",
     detail: "No funciona la TV",
     status: "En progreso",
   },
@@ -33,6 +35,7 @@ const INITIAL_REQUESTS: Request[] = [
     bed: "12",
     room: "210-A",
     area: "Nutrición",
+    floor: "2",
     detail: "Dieta especial pendiente",
     status: "Asignada",
   },
@@ -41,6 +44,7 @@ const INITIAL_REQUESTS: Request[] = [
     bed: "4",
     room: "105-C",
     area: "Kinesiología",
+    floor: "1",
     detail: "Acompañamiento solicitado",
     status: "Resuelta",
   },
@@ -49,6 +53,7 @@ const INITIAL_REQUESTS: Request[] = [
     bed: "7",
     room: "312-A",
     area: "Nutrición",
+    floor: "3",
     detail: "Reposición de cama",
     status: "Pendiente",
   },
@@ -72,6 +77,17 @@ const STATUS_OPTIONS = [
 ];
 const ROOM_TIME_FILTERS = ["Todos", ...TIME_RANGES.map((range) => range.range)];
 const STATUS_FILTERS = ["Todos", ...STATUS_OPTIONS];
+
+const SECTOR_FILTERS = ["Todos", "A", "B", "C", "D"];
+const FLOOR_FILTERS = ["Todos", "1", "2", "3", "4"];
+
+const DATE_RANGE_FILTERS = [
+  { value: "last24h", label: "Últimas 24 h" },
+  { value: "today", label: "Hoy" },
+  { value: "last7d", label: "Últimos 7 días" },
+];
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 type RequestSummary = {
   total: number;
@@ -97,6 +113,32 @@ function minutesToLabel(totalMinutes: number): string {
   return `${hours} h ${minutes} m`;
 }
 
+function getDateRange(rangeKey: string): { start?: string; end?: string } {
+  const now = new Date();
+
+  switch (rangeKey) {
+    case "today": {
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+      return { start: start.toISOString(), end: end.toISOString() };
+    }
+    case "last7d": {
+      const end = now;
+      const start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      return { start: start.toISOString(), end: end.toISOString() };
+    }
+    case "last24h":
+    default: {
+      const end = now;
+      const start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      return { start: start.toISOString(), end: end.toISOString() };
+    }
+  }
+}
+
 export default function AdminRequests() {
   const [summary, setSummary] = useState<RequestSummary>({
     total: 0,
@@ -107,20 +149,30 @@ export default function AdminRequests() {
   const [timeRanges, setTimeRanges] = useState<TimeRangeItem[]>([]);
 
   const [requestList, setRequestList] = useState<Request[]>(INITIAL_REQUESTS);
+  const [isLoadingRequests, setIsLoadingRequests] = useState<boolean>(false);
+  const [requestsError, setRequestsError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ManagementView>("none");
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [selectedTimeFilter, setSelectedTimeFilter] = useState<string>("Todos");
   const [selectedStatusFilter, setSelectedStatusFilter] =
     useState<string>("Todos");
+
+  const [selectedDateRange, setSelectedDateRange] = useState<string>("last24h");
+  const [selectedSectorFilter, setSelectedSectorFilter] =
+    useState<string>("Todos");
+  const [selectedFloorFilter, setSelectedFloorFilter] =
+    useState<string>("Todos");
+
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
 
   const maxArea = Math.max(...AREA_DISTRIBUTION.map((item) => item.count));
 
   useEffect(() => {
     async function loadMetrics() {
       try {
-        // rango de fechas: últimos 7 días (ajusta si quieres otra ventana)
         const end = new Date();
-        const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const start = new Date(end.getTime() - 23 * 60 * 60 * 1000);
 
         const startISO = start.toISOString();
         const endISO = end.toISOString();
@@ -139,13 +191,11 @@ export default function AdminRequests() {
             ),
           ]);
 
-        // total
         const totalJson: Array<{ total: string | number }> =
           await totalRes.json();
         const total =
           totalJson && totalJson.length > 0 ? Number(totalJson[0].total) : 0;
 
-        // tiempos de respuesta
         const timeJson: {
           avg_seconds: number;
           avg_minutes: number;
@@ -153,13 +203,9 @@ export default function AdminRequests() {
           std_minutes: number;
         } = await responseTimeRes.json();
 
-        // sectores / áreas
-        // asumo algo tipo: [{ sector: "Cardiología", total: 72 }, ...]
         const perSectorJson: Array<{ sector: string; total: number }> =
           await perSectorRes.json();
 
-        // buckets horarios
-        // [{ bucket: "...", label: "13:00", total: 2 }, ...]
         const timeBucketsJson: Array<{
           bucket: string;
           label: string;
@@ -172,29 +218,23 @@ export default function AdminRequests() {
           deviation: minutesToLabel(timeJson.std_minutes),
         });
 
-        console.log("📊 perSectorJson (raw backend):", perSectorJson);
-
         const mappedAreas = perSectorJson.map((item) => ({
           area: item.sector,
           count: item.total,
         }));
-
-        console.log("🧩 areaDistribution (mapped):", mappedAreas);
-
         setAreaDistribution(mappedAreas);
 
-        // ------------------------------------------
-
-        console.log("⏰ timeBucketsJson (raw backend):", timeBucketsJson);
-
-        const mappedTimeRanges = timeBucketsJson.map((item) => ({
-          range: item.label, // ejemplo: "13:00"
-          count: item.total,
-        }));
-
-        console.log("🧩 timeRanges (mapped):", mappedTimeRanges);
-
-        setTimeRanges(mappedTimeRanges);
+        const mapped = timeBucketsJson
+          .map((item) => ({
+            range: item.label,
+            count: item.total,
+            bucket: item.bucket,
+          }))
+          .sort(
+            (a, b) =>
+              new Date(a.bucket).getTime() - new Date(b.bucket).getTime(),
+          );
+        setTimeRanges(mapped.map(({ range, count }) => ({ range, count })));
       } catch (error) {
         console.error("Error cargando métricas", error);
       }
@@ -202,6 +242,80 @@ export default function AdminRequests() {
 
     loadMetrics();
   }, []);
+
+  useEffect(() => {
+    async function loadRequests() {
+      try {
+        setIsLoadingRequests(true);
+        setRequestsError(null);
+
+        const params = new URLSearchParams();
+
+        // fechas desde el filtro de rango temporal
+        const { start, end } = getDateRange(selectedDateRange);
+        if (start) params.append("start", start);
+        if (end) params.append("end", end);
+
+        // sector
+        if (selectedSectorFilter !== "Todos") {
+          params.append("sector", selectedSectorFilter);
+        }
+
+        // piso
+        if (selectedFloorFilter !== "Todos") {
+          params.append("floor", selectedFloorFilter);
+        }
+
+        // estado
+        if (selectedStatusFilter !== "Todos") {
+          // si tu back espera "pendiente", "asignada", etc. en minúsculas:
+          params.append("status", selectedStatusFilter.toLowerCase());
+        }
+
+        // paginación
+        params.append("limit", pageSize.toString());
+        params.append("offset", ((page - 1) * pageSize).toString());
+
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/tickets/all?${params.toString()}`,
+        );
+
+        if (!res.ok) {
+          throw new Error(`Error HTTP ${res.status}`);
+        }
+
+        const data: any[] = await res.json();
+
+        const mapped: Request[] = data.map((item) => ({
+          id: String(item.id),
+          bed: String(item.bed_id ?? item.Bed?.id ?? ""),
+          room: String(item.Bed?.code ?? ""),
+          area: String(item.Bed?.sector ?? ""),
+          floor: String(item.Bed?.floor ?? ""),
+          detail: String(item.description ?? item.detail ?? ""),
+          status: String(item.status ?? "pendiente"),
+        }));
+
+        setRequestList(mapped);
+      } catch (error) {
+        console.error("Error cargando solicitudes", error);
+        setRequestsError("No se pudieron cargar las solicitudes.");
+        // opcional: usar datos mock
+        // setRequestList(INITIAL_REQUESTS);
+      } finally {
+        setIsLoadingRequests(false);
+      }
+    }
+
+    loadRequests();
+  }, [
+    selectedDateRange,
+    selectedSectorFilter,
+    selectedFloorFilter,
+    selectedStatusFilter,
+    page,
+    pageSize,
+  ]);
 
   const openModal = (view: ManagementView, request?: Request) => {
     setSelectedRequest(request ?? null);
@@ -369,50 +483,117 @@ export default function AdminRequests() {
             </span>
           </div>
         </div>
-
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-purple-400">
-              Rango horario
-            </p>
-            <select
-              value={selectedTimeFilter}
-              onChange={(event) => setSelectedTimeFilter(event.target.value)}
-              className="mt-3 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-sm font-semibold text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-            >
-              {ROOM_TIME_FILTERS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <p className="text-xs uppercase tracking-[0.4em] text-purple-400">
-              Estado
-            </p>
-            <select
-              value={selectedStatusFilter}
-              onChange={(event) => setSelectedStatusFilter(event.target.value)}
-              className="mt-3 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-sm font-semibold text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-            >
-              {STATUS_FILTERS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="mt-6 flex items-center justify-between gap-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-purple-400">
+            Filtros avanzados
+          </p>
+          <button
+            type="button"
+            onClick={() => setFiltersVisible((prev) => !prev)}
+            className="rounded-2xl border border-purple-200 bg-white px-4 py-2 text-xs font-semibold text-purple-700 shadow-sm transition hover:border-purple-300 hover:bg-purple-50"
+          >
+            {filtersVisible ? "Ocultar filtros" : "Mostrar filtros"}
+          </button>
         </div>
+
+        {filtersVisible && (
+          <div className="mt-4 rounded-2xl border border-purple-50 bg-purple-50/30 px-4 py-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {/* Rango temporal -> start / end */}
+              <div className="flex flex-col gap-2">
+                <p className="text-xs uppercase tracking-[0.4em] text-purple-400">
+                  Rango temporal
+                </p>
+                <select
+                  value={selectedDateRange}
+                  onChange={(event) => {
+                    setPage(1);
+                    setSelectedDateRange(event.target.value);
+                  }}
+                  className="h-11 w-full rounded-2xl border border-purple-100 bg-white px-4 text-sm font-semibold text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                >
+                  {DATE_RANGE_FILTERS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sector */}
+              <div className="flex flex-col gap-2">
+                <p className="text-xs uppercase tracking-[0.4em] text-purple-400">
+                  Sector
+                </p>
+                <select
+                  value={selectedSectorFilter}
+                  onChange={(event) => {
+                    setPage(1);
+                    setSelectedSectorFilter(event.target.value);
+                  }}
+                  className="h-11 w-full rounded-2xl border border-purple-100 bg-white px-4 text-sm font-semibold text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                >
+                  {SECTOR_FILTERS.map((option) => (
+                    <option key={option} value={option}>
+                      {option === "Todos" ? "Todos" : `Sector ${option}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Piso */}
+              <div className="flex flex-col gap-2">
+                <p className="text-xs uppercase tracking-[0.4em] text-purple-400">
+                  Piso
+                </p>
+                <select
+                  value={selectedFloorFilter}
+                  onChange={(event) => {
+                    setPage(1);
+                    setSelectedFloorFilter(event.target.value);
+                  }}
+                  className="h-11 w-full rounded-2xl border border-purple-100 bg-white px-4 text-sm font-semibold text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                >
+                  {FLOOR_FILTERS.map((option) => (
+                    <option key={option} value={option}>
+                      {option === "Todos" ? "Todos" : `Piso ${option}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Estado -> status */}
+              <div className="flex flex-col gap-2">
+                <p className="text-xs uppercase tracking-[0.4em] text-purple-400">
+                  Estado
+                </p>
+                <select
+                  value={selectedStatusFilter}
+                  onChange={(event) => {
+                    setPage(1);
+                    setSelectedStatusFilter(event.target.value);
+                  }}
+                  className="h-11 w-full rounded-2xl border border-purple-100 bg-white px-4 text-sm font-semibold text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                >
+                  {STATUS_FILTERS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 overflow-auto rounded-2xl border border-purple-50">
           <table className="min-w-full divide-y divide-purple-50 text-sm">
             <thead className="bg-purple-50/70 text-xs font-semibold uppercase tracking-wide text-purple-600">
               <tr>
-                <th className="px-4 py-3 text-left">Cama</th>
+                <th className="px-4 py-3 text-left">Cama ID</th>
                 <th className="px-4 py-3 text-left">Habitación</th>
-                <th className="px-4 py-3 text-left">Área</th>
+                <th className="px-4 py-3 text-left">Piso</th>
+                <th className="px-4 py-3 text-left">Sector</th>
                 <th className="px-4 py-3 text-left">Detalle</th>
                 <th className="px-4 py-3 text-left">Estado</th>
                 <th className="px-4 py-3 text-left">Acciones</th>
@@ -421,12 +602,24 @@ export default function AdminRequests() {
             <tbody className="divide-y divide-purple-50 bg-white text-gray-700">
               {requestList.map((request) => (
                 <tr key={request.id} className="hover:bg-purple-50/40">
+                  {/* Cama */}
                   <td className="px-4 py-3 font-semibold text-gray-900">
                     {request.bed}
                   </td>
+
+                  {/* Habitación (code) */}
                   <td className="px-4 py-3">{request.room}</td>
+
+                  {/* Piso */}
+                  <td className="px-4 py-3">{request.floor}</td>
+
+                  {/* Sector */}
                   <td className="px-4 py-3">{request.area}</td>
+
+                  {/* Detalle */}
                   <td className="px-4 py-3">{request.detail}</td>
+
+                  {/* Estado */}
                   <td className="px-4 py-3">
                     <select
                       className="rounded-2xl border border-purple-100 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 focus:border-purple-400 focus:outline-none"
@@ -442,6 +635,8 @@ export default function AdminRequests() {
                       ))}
                     </select>
                   </td>
+
+                  {/* Acciones */}
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -489,13 +684,14 @@ export default function AdminRequests() {
 
             {(activeView === "add" || activeView === "edit") && (
               <form className="space-y-5" onSubmit={handleSubmit}>
-                <div className="grid gap-4 md:grid-cols-2">
+                {/* FILA 1: Cama / Habitación / Piso */}
+                <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <label
                       htmlFor="request-bed"
                       className="block text-sm font-semibold text-gray-700"
                     >
-                      Número de cama
+                      Cama
                     </label>
                     <input
                       id="request-bed"
@@ -503,16 +699,17 @@ export default function AdminRequests() {
                       defaultValue={
                         activeView === "edit" ? selectedRequest?.bed : ""
                       }
-                      placeholder="Ej: 12"
+                      placeholder="Ej: 02"
                       className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
                     />
                   </div>
+
                   <div>
                     <label
                       htmlFor="request-room"
                       className="block text-sm font-semibold text-gray-700"
                     >
-                      Habitación
+                      Habitación (código)
                     </label>
                     <input
                       id="request-room"
@@ -520,19 +717,38 @@ export default function AdminRequests() {
                       defaultValue={
                         activeView === "edit" ? selectedRequest?.room : ""
                       }
-                      placeholder="Ej: 301-B"
+                      placeholder="Ej: 1B02"
+                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="request-floor"
+                      className="block text-sm font-semibold text-gray-700"
+                    >
+                      Piso
+                    </label>
+                    <input
+                      id="request-floor"
+                      type="text"
+                      defaultValue={
+                        activeView === "edit" ? selectedRequest?.floor : ""
+                      }
+                      placeholder="Ej: 1"
                       className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
                     />
                   </div>
                 </div>
 
+                {/* FILA 2: Sector / Estado */}
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label
                       htmlFor="request-area"
                       className="block text-sm font-semibold text-gray-700"
                     >
-                      Área
+                      Sector
                     </label>
                     <input
                       id="request-area"
@@ -540,10 +756,11 @@ export default function AdminRequests() {
                       defaultValue={
                         activeView === "edit" ? selectedRequest?.area : ""
                       }
-                      placeholder="Cardiología, Nutrición..."
+                      placeholder="Ej: A, B, C..."
                       className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
                     />
                   </div>
+
                   <div>
                     <label
                       htmlFor="request-status"
@@ -569,6 +786,7 @@ export default function AdminRequests() {
                   </div>
                 </div>
 
+                {/* Detalle */}
                 <div>
                   <label
                     htmlFor="request-detail"
