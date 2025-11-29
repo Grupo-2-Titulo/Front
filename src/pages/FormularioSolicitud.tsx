@@ -188,13 +188,19 @@ export default function FormularioSolicitud() {
                   </p>
                 )}
 
-                <button
-                  type="submit"
-                  className="w-full rounded-2xl bg-purple-700 py-3 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:bg-purple-300"
-                  disabled={!message.trim() || !email.trim() || sending}
-                >
-                  {sending ? 'Enviando...' : 'Enviar solicitud'}
-                </button>
+                {bedId ? (
+                  <button
+                    type="submit"
+                    className="w-full rounded-2xl bg-purple-700 py-3 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:bg-purple-300"
+                    disabled={!message.trim() || !email.trim() || sending}
+                  >
+                    {sending ? 'Enviando...' : 'Enviar solicitud'}
+                  </button>
+                ) : (
+                  <p className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-2 text-center text-sm text-yellow-700">
+                    No se encontró la cama asociada, por lo que no puedes enviar la solicitud.
+                  </p>
+                )}
 
                 <p className="text-center text-xs text-gray-500">
                   Habitación 4 A – 0 2 / Cama 04

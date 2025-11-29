@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import Footer from './components/Footer'
 import BedContext from './context/BedContext'
@@ -16,6 +16,26 @@ import Login from './pages/Login'
 import Solicitudes from './pages/Solicitudes'
 import Subcategorias from './pages/SubSolicitudes'
 import type { Bed } from './types/bed'
+
+const KNOWN_ROUTES = new Set([
+  '',
+  'dudas',
+  'solicitudes',
+  'login',
+  'admin',
+  'formulario'
+])
+
+function extractToken(pathname: string): string {
+  const trimmed = pathname.replace(/^\/+/, '')
+  const [firstSegment] = trimmed.split('/')
+
+  if (!trimmed || KNOWN_ROUTES.has(firstSegment)) {
+    return ''
+  }
+
+  return trimmed
+}
 
 async function getBedFromToken(token: string): Promise<Bed> {
   if (!token) {
@@ -50,6 +70,7 @@ async function getBedById(bedId: string): Promise<Bed> {
 }
 
 export default function App() {
+  const location = useLocation()
   const [encryptedToken, setEncryptedToken] = useState('')
   const [bedId, setBedId] = useState('')
   const [bedInfo, setBedInfo] = useState<Bed | null>(null)
@@ -57,10 +78,19 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const token = window.location.pathname.replace(/^\//, '')
+    const token = extractToken(location.pathname)
     setEncryptedToken(token)
+
+    if (!token) {
+      setBedId('')
+      setBedInfo(null)
+      setLoading(false)
+      setError(null)
+      return
+    }
+
     console.log('Encrypted token captured:', token)
-  }, [])
+  }, [location.pathname])
 
   useEffect(() => {
     if (!encryptedToken) return
