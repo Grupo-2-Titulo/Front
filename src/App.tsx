@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 
 import Admin from './pages/Admin'
@@ -12,25 +13,56 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Solicitudes from './pages/Solicitudes'
 import Subcategorias from "./pages/SubSolicitudes"
+import Footer from './components/Footer'
+
+async function sendEncryptedToken(encrypted: string) {
+  if (!encrypted) return
+
+  try {
+    await fetch("https://mi-backend.com/desencriptar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: encrypted })
+    })
+  } catch (error) {
+    console.error('Failed to send encrypted token', error)
+  }
+}
 
 export default function App() {
+  const [encryptedId, setEncryptedId] = useState('')
+
+  useEffect(() => {
+    const token = window.location.pathname.replace(/^\//, '')
+    setEncryptedId(token)
+  }, [])
+
+  useEffect(() => {
+    if (encryptedId) {
+      void sendEncryptedToken(encryptedId)
+    }
+  }, [encryptedId])
+
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/dudas" element={<Dudas />} />
-      <Route path="/solicitudes" element={<Solicitudes />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/admin" element={<Admin />}>
-        <Route index element={<Navigate to="/admin/agente" replace />} />
-        <Route path="agente" element={<AdminAgent />} />
-        <Route path="solicitudes" element={<AdminRequests />} />
-        <Route path="usuarios" element={<AdminUsers />} />
-        <Route path="habitaciones" element={<AdminRooms />} />
-        <Route path="perfil" element={<AdminProfile />} />
-      </Route>
-      <Route path="/formulario/:categoryId" element={<Subcategorias />} />
-      <Route path="/formulario/:categoryId/subcategoria/:subId" element={<FormularioSolicitud />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/dudas" element={<Dudas />} />
+        <Route path="/solicitudes" element={<Solicitudes />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/admin" element={<Admin />}>
+          <Route index element={<Navigate to="/admin/agente" replace />} />
+          <Route path="agente" element={<AdminAgent />} />
+          <Route path="solicitudes" element={<AdminRequests />} />
+          <Route path="usuarios" element={<AdminUsers />} />
+          <Route path="habitaciones" element={<AdminRooms />} />
+          <Route path="perfil" element={<AdminProfile />} />
+        </Route>
+        <Route path="/formulario/:categoryId" element={<Subcategorias />} />
+        <Route path="/formulario/:categoryId/subcategoria/:subId" element={<FormularioSolicitud />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <Footer encrypted={encryptedId} />
+    </>
   )
 }
