@@ -201,10 +201,6 @@ export default function FormularioSolicitud() {
                     No se encontró la cama asociada, por lo que no puedes enviar la solicitud.
                   </p>
                 )}
-
-                <p className="text-center text-xs text-gray-500">
-                  Habitación 4 A – 0 2 / Cama 04
-                </p>
               </form>
             </>
           ) : (

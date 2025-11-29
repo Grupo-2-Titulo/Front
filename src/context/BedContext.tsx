@@ -2,12 +2,15 @@ import { createContext, useContext } from 'react'
 
 import type { Bed } from '../types/bed'
 
-type BedContextValue = {
+export type BedContextValue = {
   encryptedToken: string
   bedId: string
   bedInfo: Bed | null
   loading: boolean
   error: string | null
+  setEncryptedToken: (token: string) => void
+  setBedId: (id: string) => void
+  setBedInfo: (bed: Bed | null) => void
 }
 
 const BedContext = createContext<BedContextValue>({
@@ -15,7 +18,10 @@ const BedContext = createContext<BedContextValue>({
   bedId: '',
   bedInfo: null,
   loading: false,
-  error: null
+  error: null,
+  setEncryptedToken: () => undefined,
+  setBedId: () => undefined,
+  setBedInfo: () => undefined
 })
 
 export function useBedContext() {
