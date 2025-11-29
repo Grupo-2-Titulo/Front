@@ -69,11 +69,11 @@ const TIME_RANGES = [
 ];
 
 const STATUS_OPTIONS = [
-  "Pendiente",
-  "Asignada",
-  "En progreso",
-  "Resuelta",
-  "Escalada",
+  "pendiente",
+  "asignada",
+  "en progreso",
+  "resuelta",
+  "escalada",
 ];
 const ROOM_TIME_FILTERS = ["Todos", ...TIME_RANGES.map((range) => range.range)];
 const STATUS_FILTERS = ["Todos", ...STATUS_OPTIONS];
@@ -165,6 +165,10 @@ export default function AdminRequests() {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [reloadCounter, setReloadCounter] = useState(0);
 
   const maxArea = Math.max(...AREA_DISTRIBUTION.map((item) => item.count));
 
@@ -315,6 +319,7 @@ export default function AdminRequests() {
     selectedStatusFilter,
     page,
     pageSize,
+    reloadCounter,
   ]);
 
   const openModal = (view: ManagementView, request?: Request) => {
@@ -335,9 +340,76 @@ export default function AdminRequests() {
     );
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    closeModal();
+    setSaveError(null);
+    setIsSaving(true);
+
+    if (!selectedRequest) {
+      console.warn("No hay selectedRequest al hacer submit");
+      setIsSaving(false);
+      return;
+    }
+
+    let wasSuccessful = false;
+
+    try {
+      const formData = new FormData(event.currentTarget);
+
+      // valores nuevos desde el formulario
+      const newDescription = String(formData.get("description") ?? "");
+      const newBedId = String(formData.get("bed_id") ?? "");
+      const newStatus = String(formData.get("status") ?? "");
+
+      const payload = {
+        description: newDescription,
+        bed_id: newBedId,
+        status: newStatus,
+      };
+
+      const url = `${import.meta.env.VITE_API_URL}/protected/tickets/by_id/${selectedRequest.id}`;
+
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Error HTTP ${res.status}`);
+      }
+
+      // 👇 tu backend devuelve texto tipo "Valores Actualizados"
+      //    lo consumimos pero NO intentamos parsearlo como JSON
+      const responseText = await res.text();
+      console.log("Respuesta backend PATCH:", responseText);
+
+      // Actualizamos la lista local usando lo que el usuario editó
+      setRequestList((prev) =>
+        prev.map((r) =>
+          r.id === selectedRequest.id
+            ? {
+                ...r,
+                bed: newBedId,
+                detail: newDescription,
+                status: newStatus,
+              }
+            : r,
+        ),
+      );
+
+      wasSuccessful = true;
+    } catch (error) {
+      console.error(error);
+      setSaveError("No se pudo guardar la solicitud.");
+    } finally {
+      setIsSaving(false);
+      if (wasSuccessful) {
+        closeModal(); // 👈 ahora sí se cierra siempre que el PATCH no falle
+      }
+    }
   };
 
   return (
@@ -695,6 +767,7 @@ export default function AdminRequests() {
                     </label>
                     <input
                       id="request-bed"
+                      name="bed_id" // 👈 SOLO ESTE SE ENVÍA
                       type="text"
                       defaultValue={
                         activeView === "edit" ? selectedRequest?.bed : ""
@@ -718,7 +791,8 @@ export default function AdminRequests() {
                         activeView === "edit" ? selectedRequest?.room : ""
                       }
                       placeholder="Ej: 1B02"
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                      readOnly // 👈 NO SE ENVÍA
+                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
 
@@ -736,7 +810,8 @@ export default function AdminRequests() {
                         activeView === "edit" ? selectedRequest?.floor : ""
                       }
                       placeholder="Ej: 1"
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                      readOnly // 👈 NO SE ENVÍA
+                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -757,7 +832,8 @@ export default function AdminRequests() {
                         activeView === "edit" ? selectedRequest?.area : ""
                       }
                       placeholder="Ej: A, B, C..."
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                      readOnly // 👈 NO SE ENVÍA
+                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
 
@@ -770,6 +846,7 @@ export default function AdminRequests() {
                     </label>
                     <select
                       id="request-status"
+                      name="status" // 👈 SOLO ESTE SE ENVÍA
                       defaultValue={
                         activeView === "edit"
                           ? selectedRequest?.status
@@ -796,6 +873,7 @@ export default function AdminRequests() {
                   </label>
                   <textarea
                     id="request-detail"
+                    name="description" // 👈 SOLO ESTE SE ENVÍA
                     defaultValue={
                       activeView === "edit" ? selectedRequest?.detail : ""
                     }
@@ -805,6 +883,7 @@ export default function AdminRequests() {
                   />
                 </div>
 
+                {/* BOTONES */}
                 <div className="flex flex-wrap justify-end gap-3 pt-4">
                   <button
                     type="button"
