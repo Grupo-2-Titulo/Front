@@ -170,6 +170,9 @@ export default function AdminRequests() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [reloadCounter, setReloadCounter] = useState(0);
 
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const maxArea = Math.max(...AREA_DISTRIBUTION.map((item) => item.count));
 
   useEffect(() => {
@@ -409,6 +412,42 @@ export default function AdminRequests() {
       if (wasSuccessful) {
         closeModal(); // 👈 ahora sí se cierra siempre que el PATCH no falle
       }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRequest) {
+      console.warn("No hay selectedRequest al eliminar");
+      return;
+    }
+
+    setDeleteError(null);
+    setIsDeleting(true);
+
+    try {
+      const url = `${import.meta.env.VITE_API_URL}/protected/tickets/by_id/${selectedRequest.id}`;
+
+      const res = await fetch(url, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Error HTTP ${res.status}`);
+      }
+
+      // si el backend devuelve texto tipo "Eliminado", lo consumimos
+      const responseText = await res.text();
+      console.log("Respuesta backend DELETE:", responseText);
+
+      // sacamos la solicitud de la lista
+      setRequestList((prev) => prev.filter((r) => r.id !== selectedRequest.id));
+
+      closeModal();
+    } catch (error) {
+      console.error(error);
+      setDeleteError("No se pudo eliminar la solicitud.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -921,6 +960,8 @@ export default function AdminRequests() {
                   </button>
                   <button
                     type="button"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
                     className="rounded-2xl border border-red-200 bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-200/80 transition hover:bg-red-600"
                   >
                     Eliminar definitivamente
