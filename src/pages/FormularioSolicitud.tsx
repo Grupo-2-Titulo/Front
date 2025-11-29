@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+
 import BackHeader from '../components/BackHeader'
-import { Location } from '../icons/Icons'
 import { useBedContext } from '../context/BedContext'
+import { Location } from '../icons/Icons'
 
 interface Subcategory {
   id: string

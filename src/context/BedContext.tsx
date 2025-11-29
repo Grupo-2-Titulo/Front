@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 
 import type { Bed } from '../types/bed'
 
@@ -8,10 +9,12 @@ export type BedContextValue = {
   bedInfo: Bed | null
   loading: boolean
   error: string | null
-  setEncryptedToken: (token: string) => void
-  setBedId: (id: string) => void
-  setBedInfo: (bed: Bed | null) => void
+  setEncryptedToken: Dispatch<SetStateAction<string>>
+  setBedId: Dispatch<SetStateAction<string>>
+  setBedInfo: Dispatch<SetStateAction<Bed | null>>
 }
+
+const noop = () => undefined
 
 const BedContext = createContext<BedContextValue>({
   encryptedToken: '',
@@ -19,9 +22,9 @@ const BedContext = createContext<BedContextValue>({
   bedInfo: null,
   loading: false,
   error: null,
-  setEncryptedToken: () => undefined,
-  setBedId: () => undefined,
-  setBedInfo: () => undefined
+  setEncryptedToken: noop as Dispatch<SetStateAction<string>>,
+  setBedId: noop as Dispatch<SetStateAction<string>>,
+  setBedInfo: noop as Dispatch<SetStateAction<Bed | null>>
 })
 
 export function useBedContext() {

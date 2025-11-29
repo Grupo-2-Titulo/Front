@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
-import type { Bed } from '../types/bed'
 import BedContext from './BedContext'
+import type { Bed } from '../types/bed'
 
 const API_BASE = 'https://back-5kmt.onrender.com'
 const MIN_TOKEN_LENGTH = 20
