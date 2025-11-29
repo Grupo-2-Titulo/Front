@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Footer from './components/Footer'
-import BedContext from './context/BedContext'
+import { useBedContext } from './context/BedContext'
 import Admin from './pages/Admin'
 import AdminAgent from './pages/admin/AdminAgent'
 import AdminProfile from './pages/admin/AdminProfile'
@@ -15,117 +14,12 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import Solicitudes from './pages/Solicitudes'
 import Subcategorias from './pages/SubSolicitudes'
-import type { Bed } from './types/bed'
-
-const KNOWN_ROUTES = new Set([
-  '',
-  'dudas',
-  'solicitudes',
-  'login',
-  'admin',
-  'formulario'
-])
-
-function extractToken(pathname: string): string {
-  const trimmed = pathname.replace(/^\/+/, '')
-  const [firstSegment] = trimmed.split('/')
-
-  if (!trimmed || KNOWN_ROUTES.has(firstSegment)) {
-    return ''
-  }
-
-  return trimmed
-}
-
-async function getBedFromToken(token: string): Promise<Bed> {
-  if (!token) {
-    throw new Error('Token vacío')
-  }
-
-  const response = await fetch(
-    `https://back-5kmt.onrender.com/beds/by_token/${encodeURIComponent(token)}`
-  )
-  if (!response.ok) {
-    throw new Error(`Error al obtener cama por token (${response.status})`)
-  }
-
-  const bed = await response.json() as Bed
-  return bed
-}
-
-async function getBedById(bedId: string): Promise<Bed> {
-  if (!bedId) {
-    throw new Error('bed_id vacío')
-  }
-
-  const response = await fetch(
-    `https://back-5kmt.onrender.com/beds/by_id/${encodeURIComponent(bedId)}`
-  )
-  if (!response.ok) {
-    throw new Error(`Error al obtener cama por id (${response.status})`)
-  }
-
-  const bed = await response.json() as Bed
-  return bed
-}
 
 export default function App() {
-  const location = useLocation()
-  const [encryptedToken, setEncryptedToken] = useState('')
-  const [bedId, setBedId] = useState('')
-  const [bedInfo, setBedInfo] = useState<Bed | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const token = extractToken(location.pathname)
-    setEncryptedToken(token)
-
-    if (!token) {
-      setBedId('')
-      setBedInfo(null)
-      setLoading(false)
-      setError(null)
-      return
-    }
-
-    console.log('Encrypted token captured:', token)
-  }, [location.pathname])
-
-  useEffect(() => {
-    if (!encryptedToken) return
-
-    setLoading(true)
-    setError(null)
-
-    void (async () => {
-      try {
-        const bedFromToken = await getBedFromToken(encryptedToken)
-        console.log('Bed from token:', bedFromToken)
-
-        if (!bedFromToken.id) {
-          throw new Error('La cama obtenida no contiene un ID válido')
-        }
-
-        setBedId(bedFromToken.id)
-
-        const fullBedInfo = await getBedById(bedFromToken.id)
-        console.log('Full bed info:', fullBedInfo)
-        setBedInfo(fullBedInfo)
-      } catch (err) {
-        console.error('Error loading bed info:', err)
-        setBedInfo(null)
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [encryptedToken])
+  const { encryptedToken, bedId, bedInfo, loading, error } = useBedContext()
 
   return (
-    <BedContext.Provider
-      value={{ encryptedToken, bedId, bedInfo, loading, error }}
-    >
+    <>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/dudas" element={<Dudas />} />
@@ -159,6 +53,6 @@ export default function App() {
       </section>
 
       <Footer encrypted={encryptedToken} bedId={bedId} />
-    </BedContext.Provider>
+    </>
   )
 }

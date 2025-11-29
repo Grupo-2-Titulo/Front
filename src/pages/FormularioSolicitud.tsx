@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+
 import BackHeader from '../components/BackHeader'
-import { Location } from '../icons/Icons'
 import { useBedContext } from '../context/BedContext'
+import { Location } from '../icons/Icons'
 
 interface Subcategory {
   id: string
@@ -201,10 +202,6 @@ export default function FormularioSolicitud() {
                     No se encontró la cama asociada, por lo que no puedes enviar la solicitud.
                   </p>
                 )}
-
-                <p className="text-center text-xs text-gray-500">
-                  Habitación 4 A – 0 2 / Cama 04
-                </p>
               </form>
             </>
           ) : (
