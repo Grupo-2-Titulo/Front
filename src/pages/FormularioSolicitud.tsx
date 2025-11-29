@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Location } from '../icons/Icons'
 import BackHeader from '../components/BackHeader'
+import { Location } from '../icons/Icons'
+import { useBedContext } from '../context/BedContext'
 
 interface Subcategory {
   id: string
@@ -12,6 +13,7 @@ interface Subcategory {
 
 export default function FormularioSolicitud() {
   const { subId } = useParams<{ subId: string }>()
+  const { bedId } = useBedContext()
   const [subcategoria, setSubcategoria] = useState<Subcategory | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,9 +22,6 @@ export default function FormularioSolicitud() {
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
-
-  // El bed_id que se usa en la ruta
-  const bedId = 'AZ8oO49uDoM1r8G_MWyep5tqmuhEthU0UaNK0Y6XI_dNk_YqGnJ7dvVbsHryWReq2QYFWh4ywhyeVSft4P4PGRs'
 
   useEffect(() => {
     let active = true
@@ -57,6 +56,7 @@ export default function FormularioSolicitud() {
     if (!/\S+@\S+\.\S+/.test(email))
       return setError('Por favor ingresa un correo válido.')
     if (!message.trim()) return setError('Debes escribir un mensaje.')
+    if (!bedId) return setError('No se encontró la cama asociada a la habitación.')
 
     setSending(true)
 
