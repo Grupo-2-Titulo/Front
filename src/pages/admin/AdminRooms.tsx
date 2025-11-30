@@ -13,6 +13,16 @@ export default function AdminRooms() {
   const [error, setError] = useState<string | null>(null)
 
   const [form, setForm] = useState({ number: '', code: '', sector: '', floor: '' })
+  const [modalError, setModalError] = useState<string | null>(null)
+
+  const parseErrorMessage = (errorText: string): string => {
+    try {
+      const json = JSON.parse(errorText)
+      return json.message || errorText
+    } catch {
+      return errorText
+    }
+  }
 
   const API_URL = import.meta.env.VITE_API_URL
 
@@ -49,6 +59,7 @@ export default function AdminRooms() {
   const closeView = () => {
     setActiveView('none')
     setSelectedRoom(null)
+    setModalError(null)
   }
 
   async function fetchBeds() {
@@ -90,6 +101,7 @@ export default function AdminRooms() {
     try {
       setLoading(true)
       setError(null)
+      setModalError(null)
 
       const res = await fetch(`${API_URL}/protected/beds`, {
         method: 'POST',
@@ -102,14 +114,16 @@ export default function AdminRooms() {
 
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(text || 'Error creando la cama')
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
       }
 
       await fetchBeds()
       closeView()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'Error creando la cama')
+      setModalError(err instanceof Error ? err.message : 'Error creando la cama')
     } finally {
       setLoading(false)
     }
@@ -126,6 +140,7 @@ export default function AdminRooms() {
     try {
       setLoading(true)
       setError(null)
+      setModalError(null)
 
       const res = await fetch(`${API_URL}/protected/beds/by_id/${encodeURIComponent(selectedRoom.id)}`, {
         method: 'PATCH',
@@ -138,14 +153,16 @@ export default function AdminRooms() {
 
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(text || 'Error actualizando la cama')
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
       }
 
       await fetchBeds()
       closeView()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'Error actualizando la cama')
+      setModalError(err instanceof Error ? err.message : 'Error actualizando la cama')
     } finally {
       setLoading(false)
     }
@@ -162,6 +179,7 @@ export default function AdminRooms() {
     try {
       setLoading(true)
       setError(null)
+      setModalError(null)
 
       const res = await fetch(`${API_URL}/protected/beds/by_id/${encodeURIComponent(selectedRoom.id)}`, {
         method: 'DELETE',
@@ -172,14 +190,16 @@ export default function AdminRooms() {
 
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(text || 'Error eliminando la cama')
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
       }
 
       await fetchBeds()
       closeView()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'Error eliminando la cama')
+      setModalError(err instanceof Error ? err.message : 'Error eliminando la cama')
     } finally {
       setLoading(false)
     }
@@ -292,6 +312,12 @@ export default function AdminRooms() {
                   : 'Completa los campos para actualizar la información de la cama.'}
               </p>
             </header>
+
+            {modalError && (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                <p>{modalError}</p>
+              </div>
+            )}
 
             {(activeView === 'add' || activeView === 'edit') && (
               <form className="space-y-5" onSubmit={e => e.preventDefault()}>
