@@ -77,9 +77,9 @@ export default function AdminUsers() {
     }
   }
 
-  useEffect(() => {  
+  useEffect(() => {
     void fetchUsers()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createUser() {
     try {
