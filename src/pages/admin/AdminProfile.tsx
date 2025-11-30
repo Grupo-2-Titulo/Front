@@ -72,7 +72,9 @@ export default function AdminProfile() {
         try {
           const json = JSON.parse(text)
           message = json.message || text
-        } catch {}
+        } catch {
+          // Ignorar error de parseo
+        }
         setError(message)
         setSaving(false)
         return

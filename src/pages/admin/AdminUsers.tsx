@@ -147,7 +147,7 @@ export default function AdminUsers() {
       if (user.role === 'admin' && form.role && form.role !== selectedUser.role) body.role = form.role
 
       let endpoint = ''
-      let headers: Record<string, string> = {
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'x-user-id': userId,
         'Authorization': `Bearer ${token}`
