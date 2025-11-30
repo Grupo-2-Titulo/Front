@@ -1,7 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
-import Footer from './components/Footer'
-import { useBedContext } from './context/BedContext'
 import Admin from './pages/Admin'
 import AdminAgent from './pages/admin/AdminAgent'
 import AdminProfile from './pages/admin/AdminProfile'
@@ -17,8 +15,6 @@ import Solicitudes from './pages/Solicitudes'
 import Subcategorias from './pages/SubSolicitudes'
 
 export default function App() {
-  const { encryptedToken, bedId, bedInfo, loading, error } = useBedContext()
-
   return (
     <>
       <Routes>
@@ -42,19 +38,6 @@ export default function App() {
         />
         <Route path="*" element={<Home />} />
       </Routes>
-
-      <section className="bed-info-section">
-        {loading && <p>Cargando información de la cama...</p>}
-        {error && <p className="bed-info-error">Error: {error}</p>}
-        {bedInfo && (
-          <div className="bed-info">
-            <h2>Información de la cama</h2>
-            <pre>{JSON.stringify(bedInfo, null, 2)}</pre>
-          </div>
-        )}
-      </section>
-
-      <Footer encrypted={encryptedToken} bedId={bedId} />
     </>
   )
 }
