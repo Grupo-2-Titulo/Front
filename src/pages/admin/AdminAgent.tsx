@@ -79,27 +79,31 @@ export default function AdminAgent() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchMetrics()
+    void fetchMetrics()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange])
 
   useEffect(() => {
     if (selectedSector) {
-      fetchSectorCategoryBreakdown(selectedSector)
+      void fetchSectorCategoryBreakdown(selectedSector)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSector, timeRange])
 
   useEffect(() => {
     if (pieChartSector) {
-      fetchPieChartSectorData(pieChartSector)
+      void fetchPieChartSectorData(pieChartSector)
     } else {
       setPieChartCategoryData(categoriesData)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pieChartSector, categoriesData, timeRange])
 
   useEffect(() => {
     if (sectorsData.length > 0) {
-      fetchStackedBarData()
+      void fetchStackedBarData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectorsData, timeRange])
 
   async function fetchPieChartSectorData(sector: string) {
@@ -381,12 +385,6 @@ export default function AdminAgent() {
 
   // Categorías con más consultas promedio por cama
   const categoryAverages = categoriesData.map(cat => {
-    // Calcular cuántas camas diferentes consultaron esta categoría
-    const bedsForCategory = topBeds.filter(bed => {
-      // Aquí usamos los datos que ya tenemos
-      return true // Simplificación: usamos el total directo
-    })
-
     return {
       category: cat.category_id,
       avgPerBed: cat.total / Math.max(topBeds.length, 1)
