@@ -13,6 +13,16 @@ export default function AdminUsers() {
   const [error, setError] = useState<string | null>(null)
 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'usuario' })
+  const [modalError, setModalError] = useState<string | null>(null)
+
+  const parseErrorMessage = (errorText: string): string => {
+    try {
+      const json = JSON.parse(errorText)
+      return json.message || errorText
+    } catch {
+      return errorText
+    }
+  }
 
   const API_URL = import.meta.env.VITE_API_URL
 
@@ -36,6 +46,7 @@ export default function AdminUsers() {
   const closeView = () => {
     setActiveView('none')
     setSelectedUser(null)
+    setModalError(null)
   }
 
   async function fetchUsers() {
@@ -85,6 +96,7 @@ export default function AdminUsers() {
     try {
       setLoading(true)
       setError(null)
+      setModalError(null)
 
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
@@ -96,14 +108,16 @@ export default function AdminUsers() {
 
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(text || 'Error creando el usuario')
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
       }
 
       await fetchUsers()
       closeView()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'Error creando el usuario')
+      setModalError(err instanceof Error ? err.message : 'Error creando el usuario')
     } finally {
       setLoading(false)
     }
@@ -115,13 +129,14 @@ export default function AdminUsers() {
     const userId = user.id
     const token = localStorage.getItem('token')
     if (!userId || !token) {
-      setError('Necesitas iniciar sesión como admin para editar usuarios')
+      setModalError('Necesitas iniciar sesión como admin para editar usuarios')
       return
     }
 
     try {
       setLoading(true)
       setError(null)
+      setModalError(null)
 
       const res = await fetch(`${API_URL}/protected/admin/${encodeURIComponent(selectedUser.id)}/role`, {
         method: 'PATCH',
@@ -135,14 +150,16 @@ export default function AdminUsers() {
 
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(text || 'Error actualizando el rol del usuario')
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
       }
 
       await fetchUsers()
       closeView()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'Error actualizando el rol del usuario')
+      setModalError(err instanceof Error ? err.message : 'Error actualizando el rol del usuario')
     } finally {
       setLoading(false)
     }
@@ -154,13 +171,14 @@ export default function AdminUsers() {
     const userId = user.id
     const token = localStorage.getItem('token')
     if (!userId || !token) {
-      setError('Necesitas iniciar sesión como admin para eliminar usuarios')
+      setModalError('Necesitas iniciar sesión como admin para eliminar usuarios')
       return
     }
 
     try {
       setLoading(true)
       setError(null)
+      setModalError(null)
 
       const res = await fetch(`${API_URL}/protected/admin/${encodeURIComponent(selectedUser.id)}`, {
         method: 'DELETE',
@@ -172,14 +190,16 @@ export default function AdminUsers() {
 
       if (!res.ok) {
         const text = await res.text()
-        throw new Error(text || 'Error eliminando el usuario')
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
       }
 
       await fetchUsers()
       closeView()
     } catch (err) {
       console.error(err)
-      setError(err instanceof Error ? err.message : 'Error eliminando el usuario')
+      setModalError(err instanceof Error ? err.message : 'Error eliminando el usuario')
     } finally {
       setLoading(false)
     }
@@ -396,6 +416,12 @@ export default function AdminUsers() {
                   : 'Completa los datos para gestionar el usuario.'}
               </p>
             </header>
+
+            {modalError && (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                <p>{modalError}</p>
+              </div>
+            )}
 
             {(activeView === 'add' || activeView === 'edit') && renderForm()}
 
