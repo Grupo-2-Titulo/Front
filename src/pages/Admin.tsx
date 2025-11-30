@@ -1,15 +1,11 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 
-const navItems = [
-  { label: 'Agente virtual', to: '/admin/agente' },
-  { label: 'Solicitudes', to: '/admin/solicitudes' },
-  { label: 'Habitaciones', to: '/admin/habitaciones' },
-  { label: 'Usuarios', to: '/admin/usuarios' },
-]
-
-const ACTIVE_ADMIN = {
-  name: 'Juanita Gómez',
-  role: 'Administrador',
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
 }
 
 const getInitials = (name: string) =>
@@ -22,7 +18,38 @@ const getInitials = (name: string) =>
     .toUpperCase()
 
 export default function Admin() {
-  const profileInitials = getInitials(ACTIVE_ADMIN.name)
+  const navigate = useNavigate()
+  const [activeAdmin, setActiveAdmin] = useState<User | null>(null)
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr) as User
+        setActiveAdmin(user)
+      } catch (err) {
+        console.error('Error parsing user from localStorage:', err)
+        navigate('/login')
+      }
+    } else {
+      navigate('/login')
+    }
+  }, [navigate])
+
+  if (!activeAdmin) {
+    return <div className="flex min-h-dvh items-center justify-center">Cargando...</div>
+  }
+
+  const profileInitials = getInitials(activeAdmin.name)
+  // Construir menú dinámico según rol
+  const navItems = [
+    { label: 'Agente virtual', to: '/admin/agente' },
+    { label: 'Solicitudes', to: '/admin/solicitudes' },
+    { label: 'Habitaciones', to: '/admin/habitaciones' },
+  ]
+  if (activeAdmin.role === 'admin') {
+    navItems.push({ label: 'Usuarios', to: '/admin/usuarios' })
+  }
   return (
     <div className="min-h-dvh bg-gradient-to-br from-purple-50 via-white to-white">
       <div className="mx-auto flex min-h-dvh max-w-6xl gap-6 px-4 py-10">
@@ -39,8 +66,8 @@ export default function Admin() {
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-purple-600 text-3xl font-semibold text-white">
               {profileInitials}
             </div>
-            <p className="mt-4 text-lg font-semibold text-gray-900">{ACTIVE_ADMIN.name}</p>
-            <p className="text-sm text-purple-500">{ACTIVE_ADMIN.role}</p>
+            <p className="mt-4 text-lg font-semibold text-gray-900">{activeAdmin.name}</p>
+            <p className="text-sm text-purple-500">{activeAdmin.role}</p>
           </NavLink>
 
           <div className="mt-6 border-t border-purple-100 pt-6">

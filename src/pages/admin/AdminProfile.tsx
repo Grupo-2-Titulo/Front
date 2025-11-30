@@ -1,9 +1,36 @@
-const DEFAULT_PROFILE = {
-  name: 'Juanita Gómez',
-  email: 'juanita@ucchristus.cl',
+import { useEffect, useState } from 'react'
+
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
 }
 
 export default function AdminProfile() {
+  const [profile, setProfile] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr) as User
+        setProfile(user)
+      } catch (err) {
+        console.error('Error parsing user from localStorage:', err)
+      }
+    }
+    setLoading(false)
+  }, [])
+
+  if (loading) {
+    return <div>Cargando...</div>
+  }
+
+  if (!profile) {
+    return <div>Error: No se pudo cargar el perfil</div>
+  }
   return (
     <div className="space-y-8">
       <header>
@@ -19,7 +46,7 @@ export default function AdminProfile() {
           <input
             id="profile-name"
             type="text"
-            defaultValue={DEFAULT_PROFILE.name}
+            defaultValue={profile.name}
             className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
           />
         </div>
@@ -31,7 +58,7 @@ export default function AdminProfile() {
           <input
             id="profile-email"
             type="email"
-            defaultValue={DEFAULT_PROFILE.email}
+            defaultValue={profile.email}
             className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
           />
         </div>
