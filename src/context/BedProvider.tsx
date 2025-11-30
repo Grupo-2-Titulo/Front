@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import BedContext from './BedContext'
 import type { Bed } from '../types/bed'
 
-const API_BASE = 'https://back-5kmt.onrender.com'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://back-kki7.onrender.com'
 const MIN_TOKEN_LENGTH = 10
 const LOCAL_STORAGE_KEY = 'bedToken'
 const IGNORED_SEGMENTS = new Set([
@@ -66,6 +66,24 @@ export default function BedProvider({ children }: BedProviderProps) {
   useEffect(() => {
     const pathname = typeof window !== 'undefined' ? window.location.pathname : ''
     console.log('[BedProvider] Current pathname:', pathname)
+
+    // Si estamos en rutas de admin, no cargar datos de cama
+    if (pathname.startsWith('/admin')) {
+      console.log('[BedProvider] Admin route detected. Skipping bed data loading.')
+      setEncryptedToken('')
+      setBedId('')
+      setBedInfo(null)
+      setError(null)
+      setLoading(false)
+      // Opcionalmente limpiar localStorage
+      try {
+        localStorage.removeItem(LOCAL_STORAGE_KEY)
+        console.log('[BedProvider] Cleared bedToken from localStorage on admin route.')
+      } catch (storageError) {
+        console.error('[BedProvider] Error clearing localStorage:', storageError)
+      }
+      return
+    }
 
     const tokenFromPath = readTokenFromPathname(pathname)
     console.log(
@@ -133,8 +151,8 @@ export default function BedProvider({ children }: BedProviderProps) {
         if (cancelled) return
         console.log('[BedProvider] Respuesta /beds/by_token:', bedFromToken)
 
-        if (!bedFromToken.id) {
-          throw new Error('La cama no contiene un ID válido')
+        if (!bedFromToken || !bedFromToken.id) {
+          throw new Error('Token inválido o cama no encontrada')
         }
 
         console.log('[BedProvider] bedId obtenido del token:', bedFromToken.id)
