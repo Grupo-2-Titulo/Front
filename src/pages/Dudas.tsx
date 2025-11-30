@@ -266,10 +266,15 @@ export default function Dudas() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`${ragApiUrl}/chat/general`, {
+      const bedToken = localStorage.getItem('bedToken') || ''
+
+      const response = await fetch(`${ragApiUrl}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: text })
+        body: JSON.stringify({
+          query: text,
+          bed_token: bedToken
+        })
       })
 
       if (!response.ok) {
