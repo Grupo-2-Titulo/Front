@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+
 import type { Bed } from '../../types/bed'
 
 type ManagementView = 'none' | 'add' | 'edit' | 'delete'
@@ -15,15 +16,28 @@ export default function AdminRooms() {
 
   const API_URL = import.meta.env.VITE_API_URL
 
+  const computeCode = (floor: string, sector: string, number: string) => {
+    const num = String(number ?? '').padStart(2, '0')
+    return `${String(floor ?? '')}${String(sector ?? '')}${num}`
+  }
+
   const openAdd = () => {
     setSelectedRoom(null)
-    setForm({ number: '', code: '', sector: '', floor: '' })
+    const defaultFloor = '1'
+    const defaultSector = 'A'
+    const defaultNumber = '01'
+    setForm({ number: defaultNumber, code: computeCode(defaultFloor, defaultSector, defaultNumber), sector: defaultSector, floor: defaultFloor })
     setActiveView('add')
   }
 
   const openEdit = (room: Bed) => {
     setSelectedRoom(room)
-    setForm({ number: String(room.number ?? ''), code: String(room.code ?? ''), sector: String(room.sector ?? ''), floor: String(room.floor ?? '') })
+    const floor = String(room.floor ?? '')
+    const sector = String(room.sector ?? '')
+    const number = String(room.number ?? '')
+    const paddedNumber = number ? String(number).padStart(2, '0') : ''
+    const code = room.code ? String(room.code) : (floor && sector && paddedNumber ? computeCode(floor, sector, paddedNumber) : '')
+    setForm({ number: paddedNumber, code, sector, floor })
     setActiveView('edit')
   }
 
@@ -64,7 +78,7 @@ export default function AdminRooms() {
 
   useEffect(() => {  
     void fetchBeds()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createBed() {
     const userId = localStorage.getItem('userId')
@@ -199,10 +213,10 @@ export default function AdminRooms() {
           <table className="min-w-full divide-y divide-purple-50 text-sm">
             <thead className="bg-purple-50/70 text-xs font-semibold uppercase tracking-wide text-purple-600">
               <tr>
-                <th scope="col" className="px-4 py-3 text-left">N° cama</th>
-                <th scope="col" className="px-4 py-3 text-left">Área</th>
-                <th scope="col" className="px-4 py-3 text-left">Código</th>
                 <th scope="col" className="px-4 py-3 text-left">Piso</th>
+                <th scope="col" className="px-4 py-3 text-left">Área</th>
+                <th scope="col" className="px-4 py-3 text-left">N° cama</th>
+                <th scope="col" className="px-4 py-3 text-left">Código</th>
                 <th scope="col" className="px-4 py-3 text-left">Acciones</th>
               </tr>
             </thead>
@@ -233,10 +247,10 @@ export default function AdminRooms() {
 
               {!loading && !error && beds.map(bed => (
                 <tr key={bed.id} className="hover:bg-purple-50/40">
-                  <td className="px-4 py-3 font-semibold text-gray-900">{bed.number ?? bed.code ?? bed.id}</td>
-                  <td className="px-4 py-3">{bed.sector ?? ''}</td>
-                  <td className="px-4 py-3">{bed.code ?? ''}</td>
                   <td className="px-4 py-3">{bed.floor ?? ''}</td>
+                  <td className="px-4 py-3">{bed.sector ?? ''}</td>
+                  <td className="px-4 py-3 font-semibold text-gray-900">{bed.number ?? bed.code ?? bed.id}</td>
+                  <td className="px-4 py-3">{bed.code ?? ''}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -286,14 +300,16 @@ export default function AdminRooms() {
                     <label htmlFor="room-number" className="block text-sm font-semibold text-gray-700">
                       Número de cama
                     </label>
-                    <input
+                    <select
                       id="room-number"
-                      type="text"
                       value={form.number}
-                      onChange={e => setForm(prev => ({ ...prev, number: e.target.value }))}
-                      placeholder="Ej: 01"
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    />
+                      onChange={e => setForm(prev => ({ ...prev, number: e.target.value, code: computeCode(prev.floor, prev.sector, e.target.value) }))}
+                      className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                    >
+                      {Array.from({ length: 99 }, (_, i) => String(i + 1).padStart(2, '0')).map(n => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label htmlFor="room-code" className="block text-sm font-semibold text-gray-700">
@@ -303,9 +319,8 @@ export default function AdminRooms() {
                       id="room-code"
                       type="text"
                       value={form.code}
-                      onChange={e => setForm(prev => ({ ...prev, code: e.target.value }))}
-                      placeholder="Ej: A101"
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                      readOnly
+                      className="mt-1 w-full rounded-2xl border border-purple-100 bg-gray-50 px-4 py-3 text-gray-900"
                     />
                   </div>
                 </div>
@@ -313,27 +328,31 @@ export default function AdminRooms() {
                   <label htmlFor="room-sector" className="block text-sm font-semibold text-gray-700">
                     Área
                   </label>
-                  <input
+                  <select
                     id="room-sector"
-                    type="text"
                     value={form.sector}
-                    onChange={e => setForm(prev => ({ ...prev, sector: e.target.value }))}
-                    placeholder="Ej: Cardio"
-                    className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                  />
+                    onChange={e => setForm(prev => ({ ...prev, sector: e.target.value, code: computeCode(prev.floor, e.target.value, prev.number) }))}
+                    className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                  >
+                    {['A', 'B', 'C', 'D', 'E', 'G'].map(a => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label htmlFor="room-floor" className="block text-sm font-semibold text-gray-700">
                     Piso
                   </label>
-                  <input
+                  <select
                     id="room-floor"
-                    type="text"
                     value={form.floor}
-                    onChange={e => setForm(prev => ({ ...prev, floor: e.target.value }))}
-                    placeholder="Ej: 1"
-                    className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                  />
+                    onChange={e => setForm(prev => ({ ...prev, floor: e.target.value, code: computeCode(e.target.value, prev.sector, prev.number) }))}
+                    className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                  >
+                    {['1', '2', '3', '4'].map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex flex-wrap justify-end gap-3 pt-4">
