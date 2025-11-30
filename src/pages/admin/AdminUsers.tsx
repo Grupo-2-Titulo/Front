@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+
 import type { User } from '../../types/user'
 
 type ManagementView = 'none' | 'add' | 'edit' | 'delete'
@@ -76,7 +77,7 @@ export default function AdminUsers() {
     }
   }
 
-  useEffect(() => {
+  useEffect(() => {  
     void fetchUsers()
   }, [])
 

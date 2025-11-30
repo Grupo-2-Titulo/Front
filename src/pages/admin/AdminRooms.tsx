@@ -62,7 +62,7 @@ export default function AdminRooms() {
     }
   }
 
-  useEffect(() => {
+  useEffect(() => {  
     void fetchBeds()
   }, [])
 

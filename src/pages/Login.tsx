@@ -47,7 +47,7 @@ export default function Login() {
             const text = await res.text()
             errMsg = text || errMsg
           }
-        } catch (parseErr) {
+        } catch {
           const text = await res.text().catch(() => '')
           errMsg = text || errMsg
         }
