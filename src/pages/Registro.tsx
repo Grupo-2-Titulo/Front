@@ -1,77 +1,65 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-interface LoginResponse {
-  id: string
-  role: string
-  name: string
-  email: string
-}
-
-export default function Login() {
+export default function Registro() {
   const navigate = useNavigate()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
   const API_URL = import.meta.env.VITE_API_URL
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
+    setSuccess(false)
+
+    // Validaciones locales
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+
     setLoading(true)
 
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role: 'usuario' // Rol automático
+        })
       })
 
       if (!res.ok) {
-        // Intentar parsear JSON de error y mapear mensajes conocidos a uno más profesional
-        let errMsg = 'Error en el inicio de sesión'
-        try {
-          const errJson = await res.json()
-          if (errJson && typeof errJson === 'object' && 'message' in errJson) {
-            const serverMessage = String((errJson as any).message)
-            if (serverMessage.includes('Credenciales')) {
-              errMsg = 'Correo electrónico o contraseña incorrectos. Verifica tus credenciales e inténtalo nuevamente.'
-            } else {
-              errMsg = serverMessage || errMsg
-            }
-          } else {
-            const text = await res.text()
-            errMsg = text || errMsg
-          }
-        } catch (parseErr) {
-          const text = await res.text().catch(() => '')
-          errMsg = text || errMsg
-        }
-
-        throw new Error(errMsg)
+        const text = await res.text()
+        throw new Error(text || 'Error en el registro')
       }
 
-      const data: LoginResponse = await res.json()
+      setSuccess(true)
+      setName('')
+      setEmail('')
+      setPassword('')
+      setConfirmPassword('')
 
-      // Guardar en localStorage
-      localStorage.setItem('user', JSON.stringify({
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        role: data.role
-      }))
-      localStorage.setItem('token', data.id) // Usar el ID como token temporal
-
-      // Redirigir según el rol
-      if (data.role === 'admin') {
-        navigate('/admin/agente')
-      } else {
-        navigate('/')
-      }
+      // Redirigir a login después de 1.5 segundos
+      setTimeout(() => {
+        navigate('/login')
+      }, 1500)
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'Error desconocido')
@@ -91,9 +79,15 @@ export default function Login() {
               className="mx-auto h-8 w-auto object-contain"
             />
             <p className="mt-2 text-sm text-gray-600">
-              Introduce tus credenciales para continuar
+              Crea tu cuenta para continuar
             </p>
           </div>
+
+          {success && (
+            <div className="mb-4 rounded-2xl border border-green-100 bg-green-50/70 p-3 text-sm text-green-600">
+              ¡Registro exitoso! Redirigiendo a login...
+            </div>
+          )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             {error && (
@@ -101,6 +95,20 @@ export default function Login() {
                 {error}
               </div>
             )}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Nombre completo
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Juan Pérez"
+                className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                required
+              />
+            </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Correo electrónico
@@ -124,7 +132,21 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Ingresa tu contraseña"
+                placeholder="Mínimo 8 caracteres"
+                className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirmar contraseña
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite tu contraseña"
                 className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
                 required
               />
@@ -134,15 +156,15 @@ export default function Login() {
               disabled={loading}
               className="w-full rounded-2xl bg-purple-600 px-4 py-3 text-base font-semibold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-700 disabled:opacity-50"
             >
-              {loading ? 'Ingresando...' : 'Ingresar'}
+              {loading ? 'Registrando...' : 'Registrarse'}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-500">
-            ¿No tienes cuenta?
+            ¿Ya tienes cuenta?
             {' '}
-            <Link to="/registro" className="font-semibold text-purple-600 hover:text-purple-700">
-              Regístrate aquí
+            <Link to="/login" className="font-semibold text-purple-600 hover:text-purple-700">
+              Inicia sesión
             </Link>
           </p>
         </div>
