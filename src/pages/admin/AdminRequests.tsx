@@ -864,7 +864,7 @@ export default function AdminRequests() {
                       }
                       placeholder="Ej: 1B02"
                       readOnly
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
+                      className="mt-1 w-full cursor-not-allowed rounded-2xl border border-purple-100 bg-gray-50 px-4 py-3 text-gray-900"
                     />
                   </div>
 
@@ -883,7 +883,7 @@ export default function AdminRequests() {
                       }
                       placeholder="Ej: 1"
                       readOnly
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
+                      className="mt-1 w-full cursor-not-allowed rounded-2xl border border-purple-100 bg-gray-50 px-4 py-3 text-gray-900"
                     />
                   </div>
                 </div>
@@ -905,7 +905,7 @@ export default function AdminRequests() {
                       }
                       placeholder="Ej: A, B, C..."
                       readOnly
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
+                      className="mt-1 w-full cursor-not-allowed rounded-2xl border border-purple-100 bg-gray-50 px-4 py-3 text-gray-900"
                     />
                   </div>
 

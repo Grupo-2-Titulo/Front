@@ -23,6 +23,20 @@ export default function Home() {
               en unos pocos pasos.
             </p>
           </div>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <a
+              href="/login"
+              className="rounded-2xl border border-purple-200 bg-white/90 px-5 py-2 text-sm font-semibold text-purple-600 shadow-sm hover:bg-white"
+            >
+              Iniciar sesión
+            </a>
+            <a
+              href="/registro"
+              className="rounded-2xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg hover:bg-purple-700"
+            >
+              Registrarse
+            </a>
+          </div>
         </div>
 
         <section className="mt-10 space-y-4">

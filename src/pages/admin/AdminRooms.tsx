@@ -1,28 +1,57 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+
+import type { Bed } from '../../types/bed'
 
 type ManagementView = 'none' | 'add' | 'edit' | 'delete'
 
-const ROOMS = [
-  { bed: '1', area: 'Cardiología', location: 'Hospital', floor: 'Piso 3' },
-  { bed: '2', area: 'Nutrición', location: 'Clínica', floor: 'Piso 2' },
-  { bed: '3', area: 'Kinesiología', location: 'Hospital', floor: 'Piso 5' },
-]
-
 export default function AdminRooms() {
   const [activeView, setActiveView] = useState<ManagementView>('none')
-  const [selectedRoom, setSelectedRoom] = useState<(typeof ROOMS)[number] | null>(null)
+  const [selectedRoom, setSelectedRoom] = useState<Bed | null>(null)
+
+  const [beds, setBeds] = useState<Bed[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const [form, setForm] = useState({ number: '', code: '', sector: '', floor: '' })
+  const [modalError, setModalError] = useState<string | null>(null)
+
+  const parseErrorMessage = (errorText: string): string => {
+    try {
+      const json = JSON.parse(errorText)
+      return json.message || errorText
+    } catch {
+      return errorText
+    }
+  }
+
+  const API_URL = import.meta.env.VITE_API_URL
+
+  const computeCode = (floor: string, sector: string, number: string) => {
+    const num = String(number ?? '').padStart(2, '0')
+    return `${String(floor ?? '')}${String(sector ?? '')}${num}`
+  }
 
   const openAdd = () => {
     setSelectedRoom(null)
+    const defaultFloor = '1'
+    const defaultSector = 'A'
+    const defaultNumber = '01'
+    setForm({ number: defaultNumber, code: computeCode(defaultFloor, defaultSector, defaultNumber), sector: defaultSector, floor: defaultFloor })
     setActiveView('add')
   }
 
-  const openEdit = (room: (typeof ROOMS)[number]) => {
+  const openEdit = (room: Bed) => {
     setSelectedRoom(room)
+    const floor = String(room.floor ?? '')
+    const sector = String(room.sector ?? '')
+    const number = String(room.number ?? '')
+    const paddedNumber = number ? String(number).padStart(2, '0') : ''
+    const code = room.code ? String(room.code) : (floor && sector && paddedNumber ? computeCode(floor, sector, paddedNumber) : '')
+    setForm({ number: paddedNumber, code, sector, floor })
     setActiveView('edit')
   }
 
-  const openDelete = (room: (typeof ROOMS)[number]) => {
+  const openDelete = (room: Bed) => {
     setSelectedRoom(room)
     setActiveView('delete')
   }
@@ -30,6 +59,165 @@ export default function AdminRooms() {
   const closeView = () => {
     setActiveView('none')
     setSelectedRoom(null)
+    setModalError(null)
+  }
+
+  async function fetchBeds() {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const res = await fetch(`${API_URL}/beds/all`)
+      if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`)
+
+      const data = await res.json()
+      // Ordenar por código
+      const sorted = Array.isArray(data) ? data.sort((a, b) => {
+        const codeA = String(a.code ?? '').toLowerCase()
+        const codeB = String(b.code ?? '').toLowerCase()
+        return codeA.localeCompare(codeB)
+      }) : []
+      setBeds(sorted)
+    } catch (err) {
+      console.error('Error fetching beds:', err)
+      const message = err instanceof Error ? err.message : 'No se pudieron cargar las camas'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {  
+    void fetchBeds()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function createBed() {
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = storedUser?.id
+    const token = localStorage.getItem('token')
+    if (!userId) {
+      setModalError('Necesitas iniciar sesión como admin para crear camas')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      setModalError(null)
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-user-id': String(userId)
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const res = await fetch(`${API_URL}/protected/beds`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ number: form.number, code: form.code, sector: form.sector, floor: form.floor })
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
+      }
+
+      await fetchBeds()
+      closeView()
+    } catch (err) {
+      console.error(err)
+      setModalError(err instanceof Error ? err.message : 'Error creando la cama')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function updateBed() {
+    if (!selectedRoom) return
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = storedUser?.id
+    const token = localStorage.getItem('token')
+    if (!userId) {
+      setModalError('Necesitas iniciar sesión como admin para editar camas')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      setModalError(null)
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-user-id': String(userId)
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const res = await fetch(`${API_URL}/protected/beds/by_id/${encodeURIComponent(selectedRoom.id)}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ number: form.number, code: form.code, sector: form.sector, floor: form.floor })
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
+      }
+
+      await fetchBeds()
+      closeView()
+    } catch (err) {
+      console.error(err)
+      setModalError(err instanceof Error ? err.message : 'Error actualizando la cama')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function deleteBed() {
+    if (!selectedRoom) return
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = storedUser?.id
+    const token = localStorage.getItem('token')
+    if (!userId) {
+      setModalError('Necesitas iniciar sesión como admin para eliminar camas')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      setModalError(null)
+
+      const headers: Record<string, string> = {
+        'x-user-id': String(userId)
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const res = await fetch(`${API_URL}/protected/beds/by_id/${encodeURIComponent(selectedRoom.id)}`, {
+        method: 'DELETE',
+        headers
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        const message = parseErrorMessage(text)
+        setModalError(message)
+        return
+      }
+
+      await fetchBeds()
+      closeView()
+    } catch (err) {
+      console.error(err)
+      setModalError(err instanceof Error ? err.message : 'Error eliminando la cama')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -60,32 +248,56 @@ export default function AdminRooms() {
           <table className="min-w-full divide-y divide-purple-50 text-sm">
             <thead className="bg-purple-50/70 text-xs font-semibold uppercase tracking-wide text-purple-600">
               <tr>
-                <th scope="col" className="px-4 py-3 text-left">N° cama</th>
-                <th scope="col" className="px-4 py-3 text-left">Área</th>
-                <th scope="col" className="px-4 py-3 text-left">Ubicación</th>
                 <th scope="col" className="px-4 py-3 text-left">Piso</th>
+                <th scope="col" className="px-4 py-3 text-left">Área</th>
+                <th scope="col" className="px-4 py-3 text-left">N° cama</th>
+                <th scope="col" className="px-4 py-3 text-left">Código</th>
                 <th scope="col" className="px-4 py-3 text-left">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-purple-50 bg-white text-gray-700">
-              {ROOMS.map(room => (
-                <tr key={room.bed} className="hover:bg-purple-50/40">
-                  <td className="px-4 py-3 font-semibold text-gray-900">{room.bed}</td>
-                  <td className="px-4 py-3">{room.area}</td>
-                  <td className="px-4 py-3">{room.location}</td>
-                  <td className="px-4 py-3">{room.floor}</td>
+              {loading && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
+                    Cargando camas...
+                  </td>
+                </tr>
+              )}
+
+              {!loading && error && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-red-500">
+                    {error}
+                  </td>
+                </tr>
+              )}
+
+              {!loading && !error && beds.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-gray-500">
+                    No hay camas disponibles.
+                  </td>
+                </tr>
+              )}
+
+              {!loading && !error && beds.map(bed => (
+                <tr key={bed.id} className="hover:bg-purple-50/40">
+                  <td className="px-4 py-3">{bed.floor ?? ''}</td>
+                  <td className="px-4 py-3">{bed.sector ?? ''}</td>
+                  <td className="px-4 py-3 font-semibold text-gray-900">{bed.number ?? bed.code ?? bed.id}</td>
+                  <td className="px-4 py-3">{bed.code ?? ''}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => openEdit(room)}
+                        onClick={() => openEdit(bed)}
                         className="rounded-2xl border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-600 transition hover:border-gray-300 hover:bg-gray-50"
                       >
                         Editar
                       </button>
                       <button
                         type="button"
-                        onClick={() => openDelete(room)}
+                        onClick={() => openDelete(bed)}
                         className="rounded-2xl border border-red-100 px-3 py-1 text-xs font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50"
                       >
                         Borrar
@@ -106,7 +318,7 @@ export default function AdminRooms() {
               <p className="text-xs uppercase tracking-[0.4em] text-purple-400">Gestión</p>
               <h3 className="mt-2 text-2xl font-semibold text-gray-900">
                 {activeView === 'add' && 'Añadir nueva cama'}
-                {activeView === 'edit' && `Editar cama ${selectedRoom?.bed ?? ''}`}
+                {activeView === 'edit' && `Editar cama ${selectedRoom?.number ?? selectedRoom?.code ?? ''}`}
                 {activeView === 'delete' && 'Confirmar eliminación'}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
@@ -116,57 +328,72 @@ export default function AdminRooms() {
               </p>
             </header>
 
+            {modalError && (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                <p>{modalError}</p>
+              </div>
+            )}
+
             {(activeView === 'add' || activeView === 'edit') && (
-              <form className="space-y-5">
+              <form className="space-y-5" onSubmit={e => e.preventDefault()}>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label htmlFor="room-bed" className="block text-sm font-semibold text-gray-700">
+                    <label htmlFor="room-number" className="block text-sm font-semibold text-gray-700">
                       Número de cama
                     </label>
-                    <input
-                      id="room-bed"
-                      type="text"
-                      defaultValue={activeView === 'edit' ? selectedRoom?.bed : ''}
-                      placeholder="Ej: 12A"
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                    />
+                    <select
+                      id="room-number"
+                      value={form.number}
+                      onChange={e => setForm(prev => ({ ...prev, number: e.target.value, code: computeCode(prev.floor, prev.sector, e.target.value) }))}
+                      className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                    >
+                      {Array.from({ length: 99 }, (_, i) => String(i + 1).padStart(2, '0')).map(n => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
-                    <label htmlFor="room-area" className="block text-sm font-semibold text-gray-700">
-                      Área
+                    <label htmlFor="room-code" className="block text-sm font-semibold text-gray-700">
+                      Código
                     </label>
                     <input
-                      id="room-area"
+                      id="room-code"
                       type="text"
-                      defaultValue={activeView === 'edit' ? selectedRoom?.area : ''}
-                      placeholder="Ej: Nutrición"
-                      className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                      value={form.code}
+                      readOnly
+                      className="mt-1 w-full rounded-2xl border border-purple-100 bg-gray-50 px-4 py-3 text-gray-900"
                     />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="room-location" className="block text-sm font-semibold text-gray-700">
-                    Ubicación
+                  <label htmlFor="room-sector" className="block text-sm font-semibold text-gray-700">
+                    Área
                   </label>
-                  <input
-                    id="room-location"
-                    type="text"
-                    defaultValue={activeView === 'edit' ? selectedRoom?.location : ''}
-                    placeholder="Ej: Cama 10 - Torre B"
-                    className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                  />
+                  <select
+                    id="room-sector"
+                    value={form.sector}
+                    onChange={e => setForm(prev => ({ ...prev, sector: e.target.value, code: computeCode(prev.floor, e.target.value, prev.number) }))}
+                    className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                  >
+                    {['A', 'B', 'C', 'D', 'E', 'G'].map(a => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label htmlFor="room-floor" className="block text-sm font-semibold text-gray-700">
                     Piso
                   </label>
-                  <input
+                  <select
                     id="room-floor"
-                    type="text"
-                    defaultValue={activeView === 'edit' ? selectedRoom?.floor : ''}
-                    placeholder="Ej: Piso 3"
-                    className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-                  />
+                    value={form.floor}
+                    onChange={e => setForm(prev => ({ ...prev, floor: e.target.value, code: computeCode(e.target.value, prev.sector, prev.number) }))}
+                    className="mt-1 w-full rounded-2xl border border-purple-100 bg-white px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                  >
+                    {['1', '2', '3', '4'].map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex flex-wrap justify-end gap-3 pt-4">
@@ -179,7 +406,9 @@ export default function AdminRooms() {
                   </button>
                   <button
                     type="button"
-                    className="rounded-2xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-700"
+                    onClick={() => (activeView === 'add' ? void createBed() : void updateBed())}
+                    disabled={loading}
+                    className="rounded-2xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-700 disabled:opacity-60"
                   >
                     Guardar cambios
                   </button>
@@ -191,7 +420,7 @@ export default function AdminRooms() {
               <div className="space-y-6">
                 <div className="rounded-2xl border border-red-100 bg-red-50/70 p-4 text-sm text-red-600">
                   Estás a punto de eliminar la cama{' '}
-                  <span className="font-semibold text-red-700">{selectedRoom?.bed}</span>. Una vez confirmes,
+                  <span className="font-semibold text-red-700">{selectedRoom?.number ?? selectedRoom?.code}</span>. Una vez confirmes,
                   la información se perderá permanentemente.
                 </div>
                 <div className="flex flex-wrap justify-end gap-3">
@@ -204,7 +433,9 @@ export default function AdminRooms() {
                   </button>
                   <button
                     type="button"
-                    className="rounded-2xl border border-red-200 bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-200/80 transition hover:bg-red-600"
+                    onClick={() => void deleteBed()}
+                    disabled={loading}
+                    className="rounded-2xl border border-red-200 bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-200/80 transition hover:bg-red-600 disabled:opacity-60"
                   >
                     Eliminar definitivamente
                   </button>
