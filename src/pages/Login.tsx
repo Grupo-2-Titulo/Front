@@ -66,12 +66,8 @@ export default function Login() {
       }))
       localStorage.setItem('token', data.id) // Usar el ID como token temporal
 
-      // Redirigir según el rol
-      if (data.role === 'admin') {
-        navigate('/admin/agente')
-      } else {
-        navigate('/')
-      }
+      // Redirigir al panel /admin (el índice redirige a la vista por defecto)
+      navigate('/admin')
     } catch (err) {
       console.error(err)
       setError(err instanceof Error ? err.message : 'Error desconocido')

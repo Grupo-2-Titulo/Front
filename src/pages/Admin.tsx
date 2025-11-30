@@ -8,13 +8,6 @@ interface User {
   role: string
 }
 
-const navItems = [
-  { label: 'Agente virtual', to: '/admin/agente' },
-  { label: 'Solicitudes', to: '/admin/solicitudes' },
-  { label: 'Habitaciones', to: '/admin/habitaciones' },
-  { label: 'Usuarios', to: '/admin/usuarios' },
-]
-
 const getInitials = (name: string) =>
   name
     .split(' ')
@@ -48,6 +41,15 @@ export default function Admin() {
   }
 
   const profileInitials = getInitials(activeAdmin.name)
+  // Construir menú dinámico según rol
+  const navItems = [
+    { label: 'Agente virtual', to: '/admin/agente' },
+    { label: 'Solicitudes', to: '/admin/solicitudes' },
+    { label: 'Habitaciones', to: '/admin/habitaciones' },
+  ]
+  if (activeAdmin.role === 'admin') {
+    navItems.push({ label: 'Usuarios', to: '/admin/usuarios' })
+  }
   return (
     <div className="min-h-dvh bg-gradient-to-br from-purple-50 via-white to-white">
       <div className="mx-auto flex min-h-dvh max-w-6xl gap-6 px-4 py-10">

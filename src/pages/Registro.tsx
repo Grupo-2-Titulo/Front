@@ -51,12 +51,36 @@ export default function Registro() {
       }
 
       setSuccess(true)
+
+      // Intentar login automático para redirigir al panel
+      try {
+        const loginRes = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        })
+
+        if (loginRes.ok) {
+          const data = await loginRes.json()
+          localStorage.setItem('user', JSON.stringify({ id: data.id, name: data.name, email: data.email, role: data.role }))
+          localStorage.setItem('token', data.id)
+          // limpiar formulario
+          setName('')
+          setEmail('')
+          setPassword('')
+          setConfirmPassword('')
+          navigate('/admin')
+          return
+        }
+      } catch (loginErr) {
+        console.error('Auto-login failed after register:', loginErr)
+      }
+
+      // Fallback: redirigir a login
       setName('')
       setEmail('')
       setPassword('')
       setConfirmPassword('')
-
-      // Redirigir a login después de 1.5 segundos
       setTimeout(() => {
         navigate('/login')
       }, 1500)
