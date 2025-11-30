@@ -139,6 +139,24 @@ function getDateRange(rangeKey: string): { start?: string; end?: string } {
   }
 }
 
+function getAuthHeaders() {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const userId = user.id;
+  const token = localStorage.getItem("token");
+
+  if (!userId || !token) {
+    // Aquí puedes lanzar error o manejarlo como prefieras
+    throw new Error(
+      "Necesitas iniciar sesión como admin para ver esta información",
+    );
+  }
+
+  return {
+    "x-user-id": userId,
+    Authorization: `Bearer ${token}`,
+  };
+}
+
 export default function AdminRequests() {
   const [summary, setSummary] = useState<RequestSummary>({
     total: 0,
@@ -184,17 +202,42 @@ export default function AdminRequests() {
         const startISO = start.toISOString();
         const endISO = end.toISOString();
 
+        const authHeaders = getAuthHeaders(); // 👈 credenciales
+
         const [totalRes, responseTimeRes, perSectorRes, timeBucketsRes] =
           await Promise.all([
-            fetch(`${import.meta.env.VITE_API_URL}/protected/metrics/total`),
+            fetch(`${import.meta.env.VITE_API_URL}/protected/metrics/total`, {
+              method: "GET",
+              headers: {
+                ...authHeaders,
+              },
+            }),
             fetch(
               `${import.meta.env.VITE_API_URL}/protected/metrics/tikets_response_time_stats?start=${startISO}&end=${endISO}`,
+              {
+                method: "GET",
+                headers: {
+                  ...authHeaders,
+                },
+              },
             ),
             fetch(
               `${import.meta.env.VITE_API_URL}/protected/metrics/tikets_per_sectors`,
+              {
+                method: "GET",
+                headers: {
+                  ...authHeaders,
+                },
+              },
             ),
             fetch(
               `${import.meta.env.VITE_API_URL}/protected/metrics/tikets_per_times?start=${startISO}&end=${endISO}`,
+              {
+                method: "GET",
+                headers: {
+                  ...authHeaders,
+                },
+              },
             ),
           ]);
 
@@ -285,6 +328,12 @@ export default function AdminRequests() {
 
         const res = await fetch(
           `${import.meta.env.VITE_API_URL}/tickets/all?${params.toString()}`,
+          {
+            method: "GET",
+            headers: {
+              ...getAuthHeaders(),
+            },
+          },
         );
 
         if (!res.ok) {
@@ -376,6 +425,7 @@ export default function AdminRequests() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthHeaders(), // 👈 añadimos las credenciales
         },
         body: JSON.stringify(payload),
       });
@@ -429,6 +479,9 @@ export default function AdminRequests() {
 
       const res = await fetch(url, {
         method: "DELETE",
+        headers: {
+          ...getAuthHeaders(), // 👈 credenciales
+        },
       });
 
       if (!res.ok) {
