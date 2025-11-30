@@ -12,14 +12,6 @@ type Request = {
   status: string;
 };
 
-const AREA_DISTRIBUTION = [
-  { area: "Cardiología", count: 72 },
-  { area: "Nutrición", count: 56 },
-  { area: "Kinesiología", count: 38 },
-  { area: "Pediatría", count: 30 },
-  { area: "Otros", count: 16 },
-];
-
 const INITIAL_REQUESTS: Request[] = [
   {
     id: "REQ-01",
@@ -59,15 +51,6 @@ const INITIAL_REQUESTS: Request[] = [
   },
 ];
 
-const TIME_RANGES = [
-  { range: "07-10 h", count: 32 },
-  { range: "10-13 h", count: 58 },
-  { range: "13-16 h", count: 44 },
-  { range: "16-19 h", count: 66 },
-  { range: "19-22 h", count: 30 },
-  { range: "22-07 h", count: 18 },
-];
-
 const STATUS_OPTIONS = [
   "pendiente",
   "asignada",
@@ -75,7 +58,7 @@ const STATUS_OPTIONS = [
   "resuelta",
   "escalada",
 ];
-const ROOM_TIME_FILTERS = ["Todos", ...TIME_RANGES.map((range) => range.range)];
+
 const STATUS_FILTERS = ["Todos", ...STATUS_OPTIONS];
 
 const SECTOR_FILTERS = ["Todos", "A", "B", "C", "D"];
@@ -86,8 +69,6 @@ const DATE_RANGE_FILTERS = [
   { value: "today", label: "Hoy" },
   { value: "last7d", label: "Últimos 7 días" },
 ];
-
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 type RequestSummary = {
   total: number;
@@ -139,16 +120,13 @@ function getDateRange(rangeKey: string): { start?: string; end?: string } {
   }
 }
 
-function getAuthHeaders() {
+function getAuthHeadersOrNull() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const userId = user.id;
   const token = localStorage.getItem("token");
 
   if (!userId || !token) {
-    // Aquí puedes lanzar error o manejarlo como prefieras
-    throw new Error(
-      "Necesitas iniciar sesión como admin para ver esta información",
-    );
+    return null;
   }
 
   return {
@@ -181,28 +159,37 @@ export default function AdminRequests() {
     useState<string>("Todos");
 
   const [page, setPage] = useState<number>(1);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const [pageSize] = useState<number>(10); // por ahora es fijo, no hay selector
+
   const [filtersVisible, setFiltersVisible] = useState<boolean>(true);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [reloadCounter, setReloadCounter] = useState(0);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const maxArea = Math.max(...AREA_DISTRIBUTION.map((item) => item.count));
+  const maxArea =
+    areaDistribution.length > 0
+      ? Math.max(...areaDistribution.map((item) => item.count))
+      : 0;
 
   useEffect(() => {
     async function loadMetrics() {
       try {
+        const authHeaders = getAuthHeadersOrNull();
+        if (!authHeaders) {
+          console.warn(
+            "Necesitas iniciar sesión como admin para ver las métricas",
+          );
+          return;
+        }
+
         const end = new Date();
         const start = new Date(end.getTime() - 23 * 60 * 60 * 1000);
 
         const startISO = start.toISOString();
         const endISO = end.toISOString();
-
-        const authHeaders = getAuthHeaders(); // 👈 credenciales
 
         const [totalRes, responseTimeRes, perSectorRes, timeBucketsRes] =
           await Promise.all([
@@ -299,6 +286,15 @@ export default function AdminRequests() {
         setIsLoadingRequests(true);
         setRequestsError(null);
 
+        const authHeaders = getAuthHeadersOrNull();
+        if (!authHeaders) {
+          setRequestsError(
+            "Necesitas iniciar sesión como admin para ver solicitudes",
+          );
+          setIsLoadingRequests(false);
+          return;
+        }
+
         const params = new URLSearchParams();
 
         // fechas desde el filtro de rango temporal
@@ -318,7 +314,6 @@ export default function AdminRequests() {
 
         // estado
         if (selectedStatusFilter !== "Todos") {
-          // si tu back espera "pendiente", "asignada", etc. en minúsculas:
           params.append("status", selectedStatusFilter.toLowerCase());
         }
 
@@ -331,7 +326,7 @@ export default function AdminRequests() {
           {
             method: "GET",
             headers: {
-              ...getAuthHeaders(),
+              ...authHeaders,
             },
           },
         );
@@ -356,8 +351,6 @@ export default function AdminRequests() {
       } catch (error) {
         console.error("Error cargando solicitudes", error);
         setRequestsError("No se pudieron cargar las solicitudes.");
-        // opcional: usar datos mock
-        // setRequestList(INITIAL_REQUESTS);
       } finally {
         setIsLoadingRequests(false);
       }
@@ -371,7 +364,6 @@ export default function AdminRequests() {
     selectedStatusFilter,
     page,
     pageSize,
-    reloadCounter,
   ]);
 
   const openModal = (view: ManagementView, request?: Request) => {
@@ -403,6 +395,15 @@ export default function AdminRequests() {
       return;
     }
 
+    const authHeaders = getAuthHeadersOrNull();
+    if (!authHeaders) {
+      setSaveError(
+        "Necesitas iniciar sesión como admin para editar solicitudes",
+      );
+      setIsSaving(false);
+      return;
+    }
+
     let wasSuccessful = false;
 
     try {
@@ -425,7 +426,7 @@ export default function AdminRequests() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaders(), // 👈 añadimos las credenciales
+          ...authHeaders,
         },
         body: JSON.stringify(payload),
       });
@@ -434,8 +435,6 @@ export default function AdminRequests() {
         throw new Error(`Error HTTP ${res.status}`);
       }
 
-      // 👇 tu backend devuelve texto tipo "Valores Actualizados"
-      //    lo consumimos pero NO intentamos parsearlo como JSON
       const responseText = await res.text();
       console.log("Respuesta backend PATCH:", responseText);
 
@@ -460,7 +459,7 @@ export default function AdminRequests() {
     } finally {
       setIsSaving(false);
       if (wasSuccessful) {
-        closeModal(); // 👈 ahora sí se cierra siempre que el PATCH no falle
+        closeModal();
       }
     }
   };
@@ -474,13 +473,22 @@ export default function AdminRequests() {
     setDeleteError(null);
     setIsDeleting(true);
 
+    const authHeaders = getAuthHeadersOrNull();
+    if (!authHeaders) {
+      setDeleteError(
+        "Necesitas iniciar sesión como admin para eliminar solicitudes",
+      );
+      setIsDeleting(false);
+      return;
+    }
+
     try {
       const url = `${import.meta.env.VITE_API_URL}/protected/tickets/by_id/${selectedRequest.id}`;
 
       const res = await fetch(url, {
         method: "DELETE",
         headers: {
-          ...getAuthHeaders(), // 👈 credenciales
+          ...authHeaders,
         },
       });
 
@@ -488,11 +496,9 @@ export default function AdminRequests() {
         throw new Error(`Error HTTP ${res.status}`);
       }
 
-      // si el backend devuelve texto tipo "Eliminado", lo consumimos
       const responseText = await res.text();
       console.log("Respuesta backend DELETE:", responseText);
 
-      // sacamos la solicitud de la lista
       setRequestList((prev) => prev.filter((r) => r.id !== selectedRequest.id));
 
       closeModal();
@@ -558,7 +564,7 @@ export default function AdminRequests() {
               </h3>
             </div>
             <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
-              {AREA_DISTRIBUTION.length} áreas
+              {areaDistribution.length} áreas
             </span>
           </div>
 
@@ -601,6 +607,7 @@ export default function AdminRequests() {
                 <tr>
                   <th className="px-4 py-3 text-left">Rango horario</th>
                   <th className="px-4 py-3 text-left">Solicitudes</th>
+                  <th className="px-4 py-3 text-left">Nivel</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-purple-50 bg-white text-gray-700">
@@ -823,6 +830,15 @@ export default function AdminRequests() {
               ))}
             </tbody>
           </table>
+
+          {isLoadingRequests && (
+            <div className="p-4 text-sm text-gray-500">
+              Cargando solicitudes...
+            </div>
+          )}
+          {requestsError && (
+            <div className="p-4 text-sm text-red-600">{requestsError}</div>
+          )}
         </div>
       </section>
 
@@ -859,7 +875,7 @@ export default function AdminRequests() {
                     </label>
                     <input
                       id="request-bed"
-                      name="bed_id" // 👈 SOLO ESTE SE ENVÍA
+                      name="bed_id"
                       type="text"
                       defaultValue={
                         activeView === "edit" ? selectedRequest?.bed : ""
@@ -883,7 +899,7 @@ export default function AdminRequests() {
                         activeView === "edit" ? selectedRequest?.room : ""
                       }
                       placeholder="Ej: 1B02"
-                      readOnly // 👈 NO SE ENVÍA
+                      readOnly
                       className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
@@ -902,7 +918,7 @@ export default function AdminRequests() {
                         activeView === "edit" ? selectedRequest?.floor : ""
                       }
                       placeholder="Ej: 1"
-                      readOnly // 👈 NO SE ENVÍA
+                      readOnly
                       className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
@@ -924,7 +940,7 @@ export default function AdminRequests() {
                         activeView === "edit" ? selectedRequest?.area : ""
                       }
                       placeholder="Ej: A, B, C..."
-                      readOnly // 👈 NO SE ENVÍA
+                      readOnly
                       className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 bg-gray-50 cursor-not-allowed"
                     />
                   </div>
@@ -938,7 +954,7 @@ export default function AdminRequests() {
                     </label>
                     <select
                       id="request-status"
-                      name="status" // 👈 SOLO ESTE SE ENVÍA
+                      name="status"
                       defaultValue={
                         activeView === "edit"
                           ? selectedRequest?.status
@@ -965,7 +981,7 @@ export default function AdminRequests() {
                   </label>
                   <textarea
                     id="request-detail"
-                    name="description" // 👈 SOLO ESTE SE ENVÍA
+                    name="description"
                     defaultValue={
                       activeView === "edit" ? selectedRequest?.detail : ""
                     }
@@ -974,6 +990,10 @@ export default function AdminRequests() {
                     className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
                   />
                 </div>
+
+                {saveError && (
+                  <p className="text-sm text-red-600">{saveError}</p>
+                )}
 
                 {/* BOTONES */}
                 <div className="flex flex-wrap justify-end gap-3 pt-4">
@@ -986,7 +1006,8 @@ export default function AdminRequests() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-2xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-700"
+                    disabled={isSaving}
+                    className="rounded-2xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-700 disabled:opacity-60"
                   >
                     Guardar
                   </button>
@@ -1003,6 +1024,11 @@ export default function AdminRequests() {
                   </span>
                   . Una vez confirmes, esta acción no podrá revertirse.
                 </div>
+
+                {deleteError && (
+                  <p className="text-sm text-red-600">{deleteError}</p>
+                )}
+
                 <div className="flex flex-wrap justify-end gap-3">
                   <button
                     type="button"
@@ -1015,7 +1041,7 @@ export default function AdminRequests() {
                     type="button"
                     onClick={handleDelete}
                     disabled={isDeleting}
-                    className="rounded-2xl border border-red-200 bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-200/80 transition hover:bg-red-600"
+                    className="rounded-2xl border border-red-200 bg-red-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-red-200/80 transition hover:bg-red-600 disabled:opacity-60"
                   >
                     Eliminar definitivamente
                   </button>
