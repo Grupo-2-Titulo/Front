@@ -12,44 +12,7 @@ type Request = {
   status: string;
 };
 
-const INITIAL_REQUESTS: Request[] = [
-  {
-    id: "REQ-01",
-    bed: "1",
-    room: "301-B",
-    area: "Pediatría",
-    floor: "3",
-    detail: "No funciona la TV",
-    status: "En progreso",
-  },
-  {
-    id: "REQ-02",
-    bed: "12",
-    room: "210-A",
-    area: "Nutrición",
-    floor: "2",
-    detail: "Dieta especial pendiente",
-    status: "Asignada",
-  },
-  {
-    id: "REQ-03",
-    bed: "4",
-    room: "105-C",
-    area: "Kinesiología",
-    floor: "1",
-    detail: "Acompañamiento solicitado",
-    status: "Resuelta",
-  },
-  {
-    id: "REQ-04",
-    bed: "7",
-    room: "312-A",
-    area: "Nutrición",
-    floor: "3",
-    detail: "Reposición de cama",
-    status: "Pendiente",
-  },
-];
+const INITIAL_REQUESTS: Request[] = [];
 
 const STATUS_OPTIONS = [
   "pendiente",
@@ -124,8 +87,9 @@ function getAuthHeadersOrNull() {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const userId = user.id;
   const token = localStorage.getItem("token");
+  const userRole = user.role;
 
-  if (!userId || !token) {
+  if (!userId || !token || userRole !== "admin") {
     return null;
   }
 
