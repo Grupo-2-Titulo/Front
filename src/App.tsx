@@ -23,7 +23,7 @@ async function getBedFromToken(token: string): Promise<Bed> {
   }
 
   const response = await fetch(
-    `https://back-5kmt.onrender.com/beds/by_token/${encodeURIComponent(token)}`
+    `https://back-kki7.onrender.com/beds/by_token/${encodeURIComponent(token)}`
   )
   if (!response.ok) {
     throw new Error(`Error al obtener cama por token (${response.status})`)
@@ -39,7 +39,7 @@ async function getBedById(bedId: string): Promise<Bed> {
   }
 
   const response = await fetch(
-    `https://back-5kmt.onrender.com/beds/by_id/${encodeURIComponent(bedId)}`
+    `https://back-kki7.onrender.com/beds/by_id/${encodeURIComponent(bedId)}`
   )
   if (!response.ok) {
     throw new Error(`Error al obtener cama por id (${response.status})`)
