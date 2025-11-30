@@ -92,9 +92,11 @@ export default function AdminRooms() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createBed() {
-    const userId = localStorage.getItem('userId')
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = storedUser?.id
+    const token = localStorage.getItem('token')
     if (!userId) {
-      setError('Necesitas iniciar sesión como admin para crear camas')
+      setModalError('Necesitas iniciar sesión como admin para crear camas')
       return
     }
 
@@ -103,12 +105,15 @@ export default function AdminRooms() {
       setError(null)
       setModalError(null)
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-user-id': String(userId)
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const res = await fetch(`${API_URL}/protected/beds`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': userId
-        },
+        headers,
         body: JSON.stringify({ number: form.number, code: form.code, sector: form.sector, floor: form.floor })
       })
 
@@ -131,9 +136,11 @@ export default function AdminRooms() {
 
   async function updateBed() {
     if (!selectedRoom) return
-    const userId = localStorage.getItem('userId')
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = storedUser?.id
+    const token = localStorage.getItem('token')
     if (!userId) {
-      setError('Necesitas iniciar sesión como admin para editar camas')
+      setModalError('Necesitas iniciar sesión como admin para editar camas')
       return
     }
 
@@ -142,12 +149,15 @@ export default function AdminRooms() {
       setError(null)
       setModalError(null)
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-user-id': String(userId)
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const res = await fetch(`${API_URL}/protected/beds/by_id/${encodeURIComponent(selectedRoom.id)}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': userId
-        },
+        headers,
         body: JSON.stringify({ number: form.number, code: form.code, sector: form.sector, floor: form.floor })
       })
 
@@ -170,9 +180,11 @@ export default function AdminRooms() {
 
   async function deleteBed() {
     if (!selectedRoom) return
-    const userId = localStorage.getItem('userId')
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = storedUser?.id
+    const token = localStorage.getItem('token')
     if (!userId) {
-      setError('Necesitas iniciar sesión como admin para eliminar camas')
+      setModalError('Necesitas iniciar sesión como admin para eliminar camas')
       return
     }
 
@@ -181,11 +193,14 @@ export default function AdminRooms() {
       setError(null)
       setModalError(null)
 
+      const headers: Record<string, string> = {
+        'x-user-id': String(userId)
+      }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const res = await fetch(`${API_URL}/protected/beds/by_id/${encodeURIComponent(selectedRoom.id)}`, {
         method: 'DELETE',
-        headers: {
-          'x-user-id': userId
-        }
+        headers
       })
 
       if (!res.ok) {
