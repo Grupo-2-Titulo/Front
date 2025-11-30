@@ -38,7 +38,7 @@ export default function App() {
           path="/formulario/:categoryId/subcategoria/:subId"
           element={<FormularioSolicitud />}
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Home />} />
       </Routes>
 
       <section className="bed-info-section">
