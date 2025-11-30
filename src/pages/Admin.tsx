@@ -22,18 +22,23 @@ export default function Admin() {
   const [activeAdmin, setActiveAdmin] = useState<User | null>(null)
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user')
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr) as User
-        setActiveAdmin(user)
-      } catch (err) {
-        console.error('Error parsing user from localStorage:', err)
+    const syncUser = () => {
+      const userStr = localStorage.getItem('user')
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr) as User
+          setActiveAdmin(user)
+        } catch (err) {
+          console.error('Error parsing user from localStorage:', err)
+          navigate('/login')
+        }
+      } else {
         navigate('/login')
       }
-    } else {
-      navigate('/login')
     }
+    syncUser()
+    window.addEventListener('storage', syncUser)
+    return () => window.removeEventListener('storage', syncUser)
   }, [navigate])
 
   if (!activeAdmin) {

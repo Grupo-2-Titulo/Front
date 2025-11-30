@@ -123,13 +123,13 @@ export default function AdminUsers() {
     }
   }
 
-  async function updateUserRole() {
+  async function updateUser() {
     if (!selectedUser) return
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const userId = user.id
     const token = localStorage.getItem('token')
     if (!userId || !token) {
-      setModalError('Necesitas iniciar sesión como admin para editar usuarios')
+      setModalError('Necesitas iniciar sesión para editar usuarios')
       return
     }
 
@@ -138,14 +138,32 @@ export default function AdminUsers() {
       setError(null)
       setModalError(null)
 
-      const res = await fetch(`${API_URL}/protected/admin/${encodeURIComponent(selectedUser.id)}/role`, {
+      // Construir body solo con campos no vacíos y diferentes
+      const body: Record<string, string> = {}
+      if (form.name && form.name !== selectedUser.name) body.name = form.name
+      if (form.email && form.email !== selectedUser.email) body.email = form.email
+      if (form.password) body.password = form.password
+      // Solo admin puede cambiar rol
+      if (user.role === 'admin' && form.role && form.role !== selectedUser.role) body.role = form.role
+
+      let endpoint = ''
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-user-id': userId,
+        'Authorization': `Bearer ${token}`
+      }
+      if (user.role === 'admin' && userId !== selectedUser.id) {
+        endpoint = `${API_URL}/protected/admin/${encodeURIComponent(selectedUser.id)}`
+      } else {
+        endpoint = `${API_URL}/protected/users/by_id/${encodeURIComponent(selectedUser.id)}`
+        // No enviar rol si no es admin
+        delete body.role
+      }
+
+      const res = await fetch(endpoint, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-id': userId,
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ role: form.role })
+        headers,
+        body: JSON.stringify(body)
       })
 
       if (!res.ok) {
@@ -159,7 +177,7 @@ export default function AdminUsers() {
       closeView()
     } catch (err) {
       console.error(err)
-      setModalError(err instanceof Error ? err.message : 'Error actualizando el rol del usuario')
+      setModalError(err instanceof Error ? err.message : 'Error actualizando el usuario')
     } finally {
       setLoading(false)
     }
@@ -220,7 +238,8 @@ export default function AdminUsers() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Nombre y apellido"
-                className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                autoComplete="off"
+                className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
               />
             </div>
             <div>
@@ -233,7 +252,8 @@ export default function AdminUsers() {
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="correo@ucchristus.cl"
-                className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                autoComplete="off"
+                className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
               />
             </div>
           </div>
@@ -247,7 +267,8 @@ export default function AdminUsers() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder="Mínimo 8 caracteres"
-              className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+              autoComplete="new-password"
+              className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
             />
           </div>
           <div>
@@ -271,23 +292,70 @@ export default function AdminUsers() {
       )}
 
       {activeView === 'edit' && (
-        <div>
-          <label htmlFor="user-role" className="block text-sm font-semibold text-gray-700">
-            Rol
-          </label>
-          <select
-            id="user-role"
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value })}
-            className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
-          >
-            <option value="usuario">Usuario Estándar</option>
-            <option value="medico">Médico</option>
-            <option value="enfermero">Enfermero</option>
-            <option value="aseo">Personal de aseo</option>
-            <option value="admin">Administrador</option>
-          </select>
-        </div>
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="edit-name" className="block text-sm font-semibold text-gray-700">Nombre</label>
+              <input
+                id="edit-name"
+                type="text"
+                value={form.name}
+                onChange={e => setForm({ ...form, name: e.target.value })}
+                placeholder={(selectedUser?.name || '') + ' (sin modificar)'}
+                autoComplete="off"
+                className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+              />
+            </div>
+            <div>
+              <label htmlFor="edit-email" className="block text-sm font-semibold text-gray-700">Email</label>
+              <input
+                id="edit-email"
+                type="email"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                placeholder={(selectedUser?.email || '') + ' (sin modificar)'}
+                autoComplete="off"
+                className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="edit-password" className="block text-sm font-semibold text-gray-700">Contraseña</label>
+            <input
+              id="edit-password"
+              type="password"
+              value={form.password}
+              onChange={e => setForm({ ...form, password: e.target.value })}
+              placeholder="Nueva contraseña (opcional)"
+              autoComplete="new-password"
+              className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+            />
+          </div>
+          {/* Solo admin puede cambiar rol */}
+          {(() => {
+            const user = JSON.parse(localStorage.getItem('user') || '{}')
+            if (user.role === 'admin') {
+              return (
+                <div>
+                  <label htmlFor="edit-role" className="block text-sm font-semibold text-gray-700">Rol</label>
+                  <select
+                    id="edit-role"
+                    value={form.role}
+                    onChange={e => setForm({ ...form, role: e.target.value })}
+                    className="mt-1 w-full rounded-2xl border border-purple-100 px-4 py-3 text-gray-900 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-100"
+                  >
+                    <option value="usuario">Usuario Estándar</option>
+                    <option value="medico">Médico</option>
+                    <option value="enfermero">Enfermero</option>
+                    <option value="aseo">Personal de aseo</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+              )
+            }
+            return null
+          })()}
+        </>
       )}
 
       <div className="flex flex-wrap justify-end gap-3 pt-4">
@@ -302,7 +370,7 @@ export default function AdminUsers() {
           type="button"
           onClick={() => {
             if (activeView === 'add') void createUser()
-            if (activeView === 'edit') void updateUserRole()
+            if (activeView === 'edit') void updateUser()
           }}
           disabled={loading}
           className="rounded-2xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-700 disabled:opacity-50"
