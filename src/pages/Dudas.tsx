@@ -340,7 +340,7 @@ export default function Dudas() {
                 </p>
               </div>
 
-              <div className="flex items-center justify-start md:justify-end gap-3 text-sm text-gray-700">
+              <div className="flex items-center justify-start gap-3 text-sm text-gray-700 md:justify-end">
                 <span className="font-medium text-gray-900">
                   ¿Se resolvió tu duda?
                 </span>

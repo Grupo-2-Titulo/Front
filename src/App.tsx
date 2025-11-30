@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 
 import Footer from './components/Footer'
-import BedContext from './context/BedContext'
+import { useBedContext } from './context/BedContext'
 import Admin from './pages/Admin'
 import AdminAgent from './pages/admin/AdminAgent'
 import AdminProfile from './pages/admin/AdminProfile'
@@ -51,52 +50,10 @@ async function getBedById(bedId: string): Promise<Bed> {
 }
 
 export default function App() {
-  const [encryptedToken, setEncryptedToken] = useState('')
-  const [bedId, setBedId] = useState('')
-  const [bedInfo, setBedInfo] = useState<Bed | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const token = window.location.pathname.replace(/^\//, '')
-    setEncryptedToken(token)
-    console.log('Encrypted token captured:', token)
-  }, [])
-
-  useEffect(() => {
-    if (!encryptedToken) return
-
-    setLoading(true)
-    setError(null)
-
-    void (async () => {
-      try {
-        const bedFromToken = await getBedFromToken(encryptedToken)
-        console.log('Bed from token:', bedFromToken)
-
-        if (!bedFromToken.id) {
-          throw new Error('La cama obtenida no contiene un ID válido')
-        }
-
-        setBedId(bedFromToken.id)
-
-        const fullBedInfo = await getBedById(bedFromToken.id)
-        console.log('Full bed info:', fullBedInfo)
-        setBedInfo(fullBedInfo)
-      } catch (err) {
-        console.error('Error loading bed info:', err)
-        setBedInfo(null)
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [encryptedToken])
+  const { encryptedToken, bedId, bedInfo, loading, error } = useBedContext()
 
   return (
-    <BedContext.Provider
-      value={{ encryptedToken, bedId, bedInfo, loading, error }}
-    >
+    <>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/dudas" element={<Dudas />} />
@@ -116,7 +73,7 @@ export default function App() {
           path="/formulario/:categoryId/subcategoria/:subId"
           element={<FormularioSolicitud />}
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Home />} />
       </Routes>
 
       <section className="bed-info-section">
@@ -131,6 +88,6 @@ export default function App() {
       </section>
 
       <Footer encrypted={encryptedToken} bedId={bedId} />
-    </BedContext.Provider>
+    </>
   )
 }
