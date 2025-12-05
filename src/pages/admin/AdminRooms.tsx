@@ -14,6 +14,11 @@ export default function AdminRooms() {
 
   const [form, setForm] = useState({ number: '', code: '', sector: '', floor: '' })
   const [modalError, setModalError] = useState<string | null>(null)
+  const [qrModalOpen, setQrModalOpen] = useState(false)
+  const [qrImage, setQrImage] = useState<string | null>(null)
+  const [qrBed, setQrBed] = useState<Bed | null>(null)
+  const [qrLoading, setQrLoading] = useState(false)
+  const [qrError, setQrError] = useState<string | null>(null)
 
   const parseErrorMessage = (errorText: string): string => {
     try {
@@ -25,6 +30,12 @@ export default function AdminRooms() {
   }
 
   const API_URL = import.meta.env.VITE_API_URL
+
+  useEffect(() => {
+    return () => {
+      if (qrImage && qrImage.startsWith('blob:')) URL.revokeObjectURL(qrImage)
+    }
+  }, [qrImage])
 
   const computeCode = (floor: string, sector: string, number: string) => {
     const num = String(number ?? '').padStart(2, '0')
@@ -60,6 +71,65 @@ export default function AdminRooms() {
     setActiveView('none')
     setSelectedRoom(null)
     setModalError(null)
+  }
+
+  const closeQrModal = () => {
+    if (qrImage && qrImage.startsWith('blob:')) URL.revokeObjectURL(qrImage)
+    setQrModalOpen(false)
+    setQrImage(null)
+    setQrBed(null)
+    setQrError(null)
+    setQrLoading(false)
+  }
+
+  async function openQrModal(bed: Bed) {
+    setQrModalOpen(true)
+    setQrBed(bed)
+    setQrImage(null)
+    setQrError(null)
+    setQrLoading(true)
+
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
+    const userId = storedUser?.id
+    const token = localStorage.getItem('token')
+
+    const headers: Record<string, string> = {}
+    if (userId) headers['x-user-id'] = String(userId)
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    try {
+      const res = await fetch(`${API_URL}/beds/qr/${encodeURIComponent(bed.id)}`, { headers })
+
+      if (!res.ok) {
+        const text = await res.text()
+        const message = parseErrorMessage(text)
+        throw new Error(message)
+      }
+
+      const contentType = res.headers.get('Content-Type') ?? ''
+      if (contentType.includes('application/json')) {
+        const json = await res.json() as Record<string, unknown>
+        const qrValue = (['qr', 'qrCode', 'image', 'data'] as const)
+          .map(key => json[key])
+          .find((value): value is string => typeof value === 'string')
+
+        if (!qrValue) {
+          const message = typeof json.message === 'string' ? json.message : 'No se pudo obtener la imagen del QR'
+          throw new Error(message)
+        }
+
+        setQrImage(qrValue.startsWith('data:') ? qrValue : `data:image/png;base64,${qrValue}`)
+      } else {
+        const blob = await res.blob()
+        const blobUrl = URL.createObjectURL(blob)
+        setQrImage(blobUrl)
+      }
+    } catch (err) {
+      console.error('Error fetching bed QR:', err)
+      setQrError(err instanceof Error ? err.message : 'No se pudo cargar el QR')
+    } finally {
+      setQrLoading(false)
+    }
   }
 
   async function fetchBeds() {
@@ -290,6 +360,13 @@ export default function AdminRooms() {
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
+                        onClick={() => void openQrModal(bed)}
+                        className="rounded-2xl border border-purple-200 px-3 py-1 text-xs font-semibold text-purple-600 transition hover:border-purple-300 hover:bg-purple-50"
+                      >
+                        QR
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => openEdit(bed)}
                         className="rounded-2xl border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-600 transition hover:border-gray-300 hover:bg-gray-50"
                       >
@@ -442,6 +519,60 @@ export default function AdminRooms() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {qrModalOpen && (
+        <div className="fixed inset-0 z-30 grid place-items-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-3xl border border-purple-100 bg-white p-8 shadow-2xl">
+            <header className="mb-6 border-b border-purple-50 pb-4">
+              <p className="text-xs uppercase tracking-[0.4em] text-purple-400">Código QR</p>
+              <h3 className="mt-2 text-2xl font-semibold text-gray-900">
+                {qrBed?.code ?? qrBed?.number ?? 'Cama'}
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Escanea o descarga este código para compartir la información de la cama.
+              </p>
+            </header>
+
+            {qrError && (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+                {qrError}
+              </div>
+            )}
+
+            <div className="mb-6 flex flex-col items-center gap-4">
+              {qrLoading && (
+                <p className="text-sm text-gray-500">Generando QR...</p>
+              )}
+              {!qrLoading && qrImage && (
+                <>
+                  <img
+                    src={qrImage}
+                    alt={`QR de la cama ${qrBed?.code ?? qrBed?.number ?? ''}`}
+                    className="h-48 w-48 rounded-2xl border border-purple-100 bg-white p-4 object-contain"
+                  />
+                  <a
+                    href={qrImage}
+                    download={`${qrBed?.code ?? qrBed?.number ?? 'qr'}.png`}
+                    className="rounded-2xl bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-purple-300/60 transition hover:bg-purple-700"
+                  >
+                    Descargar QR
+                  </a>
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={closeQrModal}
+                className="rounded-2xl border border-gray-200 px-5 py-2 text-sm font-semibold text-gray-600 transition hover:border-gray-300 hover:bg-gray-50"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
