@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 interface LoginResponse {
   id: string
@@ -133,14 +133,6 @@ export default function Login() {
               {loading ? 'Ingresando...' : 'Ingresar'}
             </button>
           </form>
-
-          <p className="mt-6 text-center text-sm text-gray-500">
-            ¿No tienes cuenta?
-            {' '}
-            <Link to="/registro" className="font-semibold text-purple-600 hover:text-purple-700">
-              Regístrate aquí
-            </Link>
-          </p>
         </div>
       </main>
     </div>
