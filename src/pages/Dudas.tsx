@@ -27,7 +27,7 @@ const DEFAULT_PROMPTS = [
 ]
 
 const LINK_TOKEN_REGEX =
-  /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(\+?\d[\d\s().-]{6,}\d)|((?:https?:\/\/|www\.)[^\s<]+)/gi
+  /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(\+?\d[\d\s().-]{6,}\d)|((?:https?:\/\/|www\.)[^\s<]+)|((?:[A-Z0-9-]+\.)+(?:CL|COM)(?:\/[^\s<]*)?)/gi
 
 function createId() {
   return Math.random().toString(36).slice(2)
@@ -160,8 +160,8 @@ function formatAssistantContent(content: string): ReactNode {
       } else {
         parts.push(<Fragment key={`text-${fragmentCounter++}`}>{fullMatch}</Fragment>)
       }
-    } else if (match[3]) {
-      let urlText = match[3]
+    } else if (match[3] || match[4]) {
+      let urlText = match[3] ?? match[4] ?? ''
       let trailing = ''
       while (/[),.;!?]$/.test(urlText)) {
         trailing = urlText.slice(-1) + trailing
