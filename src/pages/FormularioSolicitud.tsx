@@ -14,7 +14,7 @@ interface Subcategory {
 
 export default function FormularioSolicitud() {
   const { subId } = useParams<{ subId: string }>()
-  const { bedId } = useBedContext()
+  const { encryptedToken } = useBedContext()
   const [subcategoria, setSubcategoria] = useState<Subcategory | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -57,13 +57,14 @@ export default function FormularioSolicitud() {
     if (!/\S+@\S+\.\S+/.test(email))
       return setError('Por favor ingresa un correo válido.')
     if (!message.trim()) return setError('Debes escribir un mensaje.')
-    if (!bedId) return setError('No se encontró la cama asociada a la habitación.')
+    if (!encryptedToken) return setError('No se encontró el token de la habitación.')
 
     setSending(true)
 
     try {
+      const tokenParam = encodeURIComponent(encryptedToken)
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/protected/tickets/${bedId}`,
+        `${import.meta.env.VITE_API_URL}/protected/tickets/${tokenParam}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -189,7 +190,7 @@ export default function FormularioSolicitud() {
                   </p>
                 )}
 
-                {bedId ? (
+                {encryptedToken ? (
                   <button
                     type="submit"
                     className="w-full rounded-2xl bg-purple-700 py-3 text-sm font-semibold text-white transition hover:bg-purple-800 disabled:cursor-not-allowed disabled:bg-purple-300"
@@ -199,7 +200,7 @@ export default function FormularioSolicitud() {
                   </button>
                 ) : (
                   <p className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-2 text-center text-sm text-yellow-700">
-                    No se encontró la cama asociada, por lo que no puedes enviar la solicitud.
+                    No se encontró el token de la habitación, por lo que no puedes enviar la solicitud.
                   </p>
                 )}
               </form>
