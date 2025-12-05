@@ -26,8 +26,8 @@ const DEFAULT_PROMPTS = [
   '¿Dónde hago un reclamo o sugerencia?'
 ]
 
-const CONTACT_REGEX =
-  /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(\+?\d[\d\s().-]{6,}\d)/gi
+const LINK_TOKEN_REGEX =
+  /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})|(\+?\d[\d\s().-]{6,}\d)|((?:https?:\/\/|www\.)[^\s<]+)/gi
 
 function createId() {
   return Math.random().toString(36).slice(2)
@@ -110,7 +110,7 @@ function normalizeSections(payload: unknown): SectionOption[] {
 }
 
 function formatAssistantContent(content: string): ReactNode {
-  const matcher = new RegExp(CONTACT_REGEX)
+  const matcher = new RegExp(LINK_TOKEN_REGEX)
   const parts: ReactNode[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
@@ -140,9 +140,9 @@ function formatAssistantContent(content: string): ReactNode {
         </a>
       )
     } else if (match[2]) {
-      const digits = fullMatch.replace(/\D/g, '')
+      const digits = match[2].replace(/\D/g, '')
       if (digits.length >= 7) {
-        const telValue = fullMatch.replace(/[^\d+]/g, '')
+        const telValue = match[2].replace(/[^\d+]/g, '')
         const normalized =
           telValue.startsWith('+')
             ? `+${telValue.slice(1).replace(/\+/g, '')}`
@@ -159,6 +159,31 @@ function formatAssistantContent(content: string): ReactNode {
         )
       } else {
         parts.push(<Fragment key={`text-${fragmentCounter++}`}>{fullMatch}</Fragment>)
+      }
+    } else if (match[3]) {
+      let urlText = match[3]
+      let trailing = ''
+      while (/[),.;!?]$/.test(urlText)) {
+        trailing = urlText.slice(-1) + trailing
+        urlText = urlText.slice(0, -1)
+      }
+      const normalizedUrl =
+        urlText.startsWith('http') ? urlText : `https://${urlText}`
+
+      parts.push(
+        <a
+          key={`url-${start}`}
+          href={normalizedUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-purple-700 underline underline-offset-2"
+        >
+          {urlText}
+        </a>
+      )
+
+      if (trailing) {
+        parts.push(<Fragment key={`trail-${fragmentCounter++}`}>{trailing}</Fragment>)
       }
     }
 
